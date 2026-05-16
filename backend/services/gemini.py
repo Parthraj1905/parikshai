@@ -1,37 +1,242 @@
-from google import genai
-from google.genai import types
-from config import GEMINI_API_KEY
+import asyncio
+import re
+from typing import Any, Optional
 
-client = genai.Client(api_key=GEMINI_API_KEY)
+from google import genai
+from google.genai import errors, types
+from config import GEMINI_API_KEY, GEMINI_MODELS
+
+client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 EXAM_PROMPTS = {
-    "GPSC": "You are an expert tutor for GPSC (Gujarat Public Service Commission) exam. Syllabus includes Gujarat history, geography, polity, economy, science. Answer in {language}.",
-    "SSC": "You are an expert tutor for SSC CGL/CHSL exam. Cover reasoning, English, quant, GK. Answer in {language}.",
-    "RRB": "You are an expert tutor for RRB NTPC/Group D exam. Cover railway GK, reasoning, math, science. Answer in {language}.",
-    "UPSC": "You are an expert tutor for UPSC CSE exam. Cover history, polity, geography, economy, environment, science. Answer in {language}.",
+    "GPSC": """You are a sharp GPSC exam tutor. Rules:
+- Answer in {language}
+- Keep answers SHORT and DIRECT (2-3 lines max)
+- Only explain in detail if user specifically asks "explain" or "વિસ્તારથી કહો"
+- For factual questions: just give the fact
+- Talk like a smart friend, not a textbook
+- Use numbers (1. 2. 3.) only when user asks for a list or ranking
+- Each numbered item on its own line
+- Never put a list in one sentence""",
+
+    "SSC": """You are a sharp SSC exam tutor. Rules:
+- Answer in {language}
+- Keep answers SHORT and DIRECT (2-3 lines max)
+- Only explain in detail if user specifically asks "explain"
+- Talk like a smart friend, not a textbook
+- Use numbers (1. 2. 3.) only when user asks for a list or ranking
+- Each numbered item on its own line
+- Never put a list in one sentence""",
+
+    "RRB": """You are a sharp RRB exam tutor. Rules:
+- Answer in {language}
+- Keep answers SHORT and DIRECT (2-3 lines max)
+- Only explain in detail if user specifically asks "explain"
+- Talk like a smart friend, not a textbook
+- Use numbers (1. 2. 3.) only when user asks for a list or ranking
+- Each numbered item on its own line
+- Never put a list in one sentence""",
+
+    "UPSC": """You are a sharp UPSC exam tutor. Rules:
+- Answer in {language}
+- Keep answers SHORT and DIRECT (2-3 lines max)
+- Only explain in detail if user specifically asks "explain"
+- Talk like a smart friend, not a textbook
+- Use numbers (1. 2. 3.) only when user asks for a list or ranking
+- Each numbered item on its own line
+- Never put a list in one sentence""",
 }
 
 LANG_MAP = {"gu": "Gujarati", "hi": "Hindi", "en": "English"}
 
+
+class GeminiServiceError(Exception):
+    def __init__(
+        self,
+        message: str,
+        status_code: int = 503,
+        retry_after: Optional[int] = None,
+    ):
+        self.message = message
+        self.status_code = status_code
+        self.retry_after = retry_after
+        super().__init__(message)
+
+
+def _quota_error_text(details: Any, message: Optional[str]) -> str:
+    parts = [message or ""]
+    if isinstance(details, dict):
+        error = details.get("error", {})
+        parts.append(str(error.get("message", "")))
+        for detail in error.get("details", []):
+            parts.append(str(detail.get("quotaMetric", "")))
+            parts.append(str(detail.get("quotaId", "")))
+            for violation in detail.get("violations", []):
+                parts.append(str(violation.get("quotaMetric", "")))
+                parts.append(str(violation.get("quotaId", "")))
+    return " ".join(parts).lower()
+
+
+def _is_daily_or_zero_quota(exc: errors.APIError) -> bool:
+    text = _quota_error_text(exc.details, exc.message)
+    return "limit: 0" in text or "perday" in text or "per day" in text
+
+
+def _retry_after_seconds(details: Any, message: Optional[str]) -> Optional[int]:
+    if isinstance(details, dict):
+        error_details = details.get("error", {}).get("details", [])
+        for detail in error_details:
+            retry_delay = detail.get("retryDelay")
+            if retry_delay and retry_delay.endswith("s"):
+                try:
+                    return max(1, int(float(retry_delay[:-1])))
+                except ValueError:
+                    pass
+
+    if message:
+        match = re.search(r"retry in\s+([0-9]+(?:\.[0-9]+)?)s", message, re.IGNORECASE)
+        if match:
+            return max(1, int(float(match.group(1))))
+
+    return None
+
+
+def _gemini_service_error(exc: errors.APIError, model: str) -> GeminiServiceError:
+    if exc.code == 429 or exc.status == "RESOURCE_EXHAUSTED":
+        daily_or_zero_quota = _is_daily_or_zero_quota(exc)
+        retry_after = None if daily_or_zero_quota else _retry_after_seconds(exc.details, exc.message)
+        retry_text = f" Please retry after {retry_after} seconds." if retry_after else ""
+        quota_text = (
+            " Gemini reported a daily or zero quota limit, so waiting one minute will not fix it."
+            if daily_or_zero_quota
+            else ""
+        )
+        return GeminiServiceError(
+            (
+                f"AI quota exhausted for model {model}."
+                f"{retry_text}{quota_text}"
+                " Check Gemini billing/quota or set GEMINI_MODELS to a model with available quota."
+            ),
+            status_code=429,
+            retry_after=retry_after,
+        )
+
+    if exc.code in (401, 403):
+        return GeminiServiceError(
+            "Gemini API key is invalid or does not have access to this model.",
+            status_code=502,
+        )
+
+    if exc.code == 400:
+        return GeminiServiceError(
+            "Gemini rejected the request. Please try a shorter or simpler message.",
+            status_code=400,
+        )
+
+    return GeminiServiceError(
+        "AI service is temporarily unavailable. Please try again.",
+        status_code=502,
+    )
+
+
+def _message_content(message: Any) -> str:
+    if isinstance(message, dict):
+        return str(message.get("content", "")).strip()
+    return str(getattr(message, "content", "")).strip()
+
+
+def _message_role(message: Any) -> str:
+    if isinstance(message, dict):
+        role = message.get("role", "user")
+    else:
+        role = getattr(message, "role", "user")
+    if role == "assistant":
+        return "model"
+    if role in ("user", "model"):
+        return role
+    return "user"
+
+
 async def get_ai_response(exam: str, language: str, messages: list) -> str:
+    if client is None:
+        raise GeminiServiceError(
+            "Gemini API key is not configured. Add GEMINI_API_KEY to backend/.env.",
+            status_code=503,
+        )
+
+    if not messages:
+        raise GeminiServiceError("Message is required.", status_code=400)
+
+    user_message = _message_content(messages[-1])
+    if not user_message:
+        raise GeminiServiceError("Message content is required.", status_code=400)
+
     lang_name = LANG_MAP.get(language, "Gujarati")
     system_prompt = EXAM_PROMPTS.get(exam, EXAM_PROMPTS["GPSC"]).format(language=lang_name)
 
     history = []
     for msg in messages[:-1]:
+        content = _message_content(msg)
+        if not content:
+            continue
         history.append(types.Content(
-            role=msg["role"],
-            parts=[types.Part(text=msg["content"])]
+            role=_message_role(msg),
+            parts=[types.Part(text=content)]
         ))
 
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=history + [types.Content(
-            role="user",
-            parts=[types.Part(text=messages[-1]["content"])]
-        )],
-        config=types.GenerateContentConfig(
-            system_instruction=system_prompt
+    last_quota_error = None
+    last_api_error = None
+    contents = history + [types.Content(
+        role="user",
+        parts=[types.Part(text=user_message)]
+    )]
+    config = types.GenerateContentConfig(system_instruction=system_prompt)
+
+    for model in GEMINI_MODELS:
+        try:
+            response = await asyncio.to_thread(
+                client.models.generate_content,
+                model=model,
+                contents=contents,
+                config=config
+            )
+        except errors.APIError as exc:
+            service_error = _gemini_service_error(exc, model)
+            if service_error.status_code == 429:
+                last_quota_error = service_error
+                last_api_error = exc
+                continue
+            raise service_error from exc
+        except Exception as exc:
+            raise GeminiServiceError(
+                "AI service is temporarily unavailable. Please try again.",
+                status_code=502,
+            ) from exc
+        break
+    else:
+        models = ", ".join(GEMINI_MODELS)
+        raise GeminiServiceError(
+            (
+                f"No Gemini model in GEMINI_MODELS has available quota. Tried: {models}. "
+                "Open Google AI Studio quota/billing for this project, or set GEMINI_MODELS "
+                "to a model that has non-zero quota."
+            ),
+            status_code=429,
+            retry_after=last_quota_error.retry_after if last_quota_error else None,
+        ) from last_api_error
+
+    try:
+        response_text = response.text
+    except Exception as exc:
+        raise GeminiServiceError(
+            "AI service returned an unreadable response. Please try again.",
+            status_code=502,
+        ) from exc
+
+    if not response_text:
+        raise GeminiServiceError(
+            "AI service returned an empty response. Please try again.",
+            status_code=502,
         )
-    )
-    return response.text
+
+    return response_text

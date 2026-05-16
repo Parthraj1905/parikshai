@@ -66,7 +66,11 @@ export default function Chat() {
                 ? 'bg-orange-500 text-white rounded-br-none'
                 : 'bg-white text-gray-800 shadow rounded-bl-none'
             }`}>
-              {m.content}
+              <span dangerouslySetInnerHTML={{ 
+                __html: m.content
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br/>')
+              }} />
             </div>
           </div>
         ))}

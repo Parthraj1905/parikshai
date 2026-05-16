@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
-from services.gemini import get_ai_response
+from services.gemini import GeminiServiceError, get_ai_response
 from services.supabase_client import supabase
 
 router = APIRouter()
@@ -41,7 +41,17 @@ async def chat(req: ChatRequest, authorization: str = Header(...)):
             raise HTTPException(status_code=429, detail="Daily limit reached. Upgrade to premium.")
     
     # Get AI response
-    ai_reply = await get_ai_response(req.exam, req.language, req.messages)
+    try:
+        ai_reply = await get_ai_response(req.exam, req.language, req.messages)
+    except GeminiServiceError as exc:
+        headers = {}
+        if exc.retry_after:
+            headers["Retry-After"] = str(exc.retry_after)
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail=exc.message,
+            headers=headers or None,
+        ) from exc
     
     # Increment counter
     supabase.table("profiles").update({
