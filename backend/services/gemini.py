@@ -145,8 +145,9 @@ def _gemini_service_error(exc: errors.APIError, model: str) -> GeminiServiceErro
         )
 
     if exc.code == 400:
+        detail = exc.message or "Bad request"
         return GeminiServiceError(
-            "Gemini rejected the request. Please try a shorter or simpler message.",
+            f"Gemini rejected the request: {detail}",
             status_code=400,
         )
 

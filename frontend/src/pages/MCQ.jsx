@@ -22,7 +22,7 @@ export default function MCQ() {
   const { exam, lang } = state || { exam: 'GPSC', lang: 'gu' }
   const topics = TOPICS[exam] || TOPICS.GPSC
 
-  const [topic, setTopic] = useState('Random')
+  const [topic, setTopic] = useState(state?.topic || 'Random')
   const [questions, setQuestions] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState('')
