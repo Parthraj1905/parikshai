@@ -4,6 +4,7 @@ import { supabase } from './lib/supabase'
 import Login from './pages/Login'
 import Home from './pages/Home'
 import Chat from './pages/Chat'
+import MCQ from './pages/MCQ'
 import Dashboard from './pages/Dashboard'
 
 export default function App() {
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
         <Route path="/" element={session ? <Home /> : <Navigate to="/login" />} />
         <Route path="/chat" element={session ? <Chat /> : <Navigate to="/login" />} />
+        <Route path="/mcq" element={session ? <MCQ /> : <Navigate to="/login" />} />
         <Route path="/dashboard" element={session ? <Dashboard /> : <Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>

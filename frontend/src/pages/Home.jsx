@@ -63,6 +63,13 @@ export default function Home() {
         </button>
 
         <button
+          onClick={() => navigate('/mcq', { state: { exam, lang } })}
+          className="w-full mt-3 bg-orange-500 text-white py-4 rounded-xl font-bold text-lg hover:bg-orange-600"
+        >
+          MCQ Practice →
+        </button>
+
+        <button
           onClick={() => navigate('/dashboard')}
           className="w-full mt-3 bg-white text-orange-500 py-4 rounded-xl font-bold text-lg border-2 border-orange-300 hover:bg-orange-50"
         >

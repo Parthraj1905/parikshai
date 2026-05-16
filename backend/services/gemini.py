@@ -1,4 +1,5 @@
 import asyncio
+import json
 import re
 from typing import Any, Optional
 
@@ -77,9 +78,17 @@ def _quota_error_text(details: Any, message: Optional[str]) -> str:
     return " ".join(parts).lower()
 
 
+def _api_error_text(exc: errors.APIError) -> str:
+    return _quota_error_text(exc.details, exc.message)
+
+
 def _is_daily_or_zero_quota(exc: errors.APIError) -> bool:
-    text = _quota_error_text(exc.details, exc.message)
+    text = _api_error_text(exc)
     return "limit: 0" in text or "perday" in text or "per day" in text
+
+
+def _is_leaked_api_key(exc: errors.APIError) -> bool:
+    return "reported as leaked" in _api_error_text(exc)
 
 
 def _retry_after_seconds(details: Any, message: Optional[str]) -> Optional[int]:
@@ -122,6 +131,14 @@ def _gemini_service_error(exc: errors.APIError, model: str) -> GeminiServiceErro
         )
 
     if exc.code in (401, 403):
+        if _is_leaked_api_key(exc):
+            return GeminiServiceError(
+                (
+                    "Gemini API key was reported as leaked. Create a new API key in "
+                    "Google AI Studio, replace GEMINI_API_KEY in backend/.env, then restart the backend."
+                ),
+                status_code=503,
+            )
         return GeminiServiceError(
             "Gemini API key is invalid or does not have access to this model.",
             status_code=502,
@@ -157,40 +174,15 @@ def _message_role(message: Any) -> str:
     return "user"
 
 
-async def get_ai_response(exam: str, language: str, messages: list) -> str:
+async def _generate_text(contents: list, config: types.GenerateContentConfig) -> str:
     if client is None:
         raise GeminiServiceError(
             "Gemini API key is not configured. Add GEMINI_API_KEY to backend/.env.",
             status_code=503,
         )
 
-    if not messages:
-        raise GeminiServiceError("Message is required.", status_code=400)
-
-    user_message = _message_content(messages[-1])
-    if not user_message:
-        raise GeminiServiceError("Message content is required.", status_code=400)
-
-    lang_name = LANG_MAP.get(language, "Gujarati")
-    system_prompt = EXAM_PROMPTS.get(exam, EXAM_PROMPTS["GPSC"]).format(language=lang_name)
-
-    history = []
-    for msg in messages[:-1]:
-        content = _message_content(msg)
-        if not content:
-            continue
-        history.append(types.Content(
-            role=_message_role(msg),
-            parts=[types.Part(text=content)]
-        ))
-
     last_quota_error = None
     last_api_error = None
-    contents = history + [types.Content(
-        role="user",
-        parts=[types.Part(text=user_message)]
-    )]
-    config = types.GenerateContentConfig(system_instruction=system_prompt)
 
     for model in GEMINI_MODELS:
         try:
@@ -240,3 +232,162 @@ async def get_ai_response(exam: str, language: str, messages: list) -> str:
         )
 
     return response_text
+
+
+def _json_from_text(text: str) -> Any:
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\s*```$", "", cleaned)
+
+    try:
+        parsed = json.loads(cleaned)
+    except json.JSONDecodeError:
+        start = cleaned.find("{")
+        end = cleaned.rfind("}")
+        if start == -1 or end == -1 or end <= start:
+            raise GeminiServiceError(
+                "AI service returned invalid MCQ JSON. Please try again.",
+                status_code=502,
+            )
+        try:
+            parsed = json.loads(cleaned[start:end + 1])
+        except json.JSONDecodeError as exc:
+            raise GeminiServiceError(
+                "AI service returned invalid MCQ JSON. Please try again.",
+                status_code=502,
+            ) from exc
+
+    if not isinstance(parsed, (dict, list)):
+        raise GeminiServiceError(
+            "AI service returned invalid MCQ JSON. Please try again.",
+            status_code=502,
+        )
+
+    return parsed
+
+
+def _normalize_mcq(data: dict) -> dict:
+    question = str(data.get("question", "")).strip()
+    options = data.get("options", [])
+    correct = str(data.get("correct", "")).strip()
+    explanation = str(data.get("explanation", "")).strip()
+
+    if not question or not isinstance(options, list) or len(options) != 4 or not explanation:
+        raise GeminiServiceError(
+            "AI service returned incomplete MCQ data. Please try again.",
+            status_code=502,
+        )
+
+    normalized_options = [str(option).strip() for option in options]
+    if any(not option for option in normalized_options):
+        raise GeminiServiceError(
+            "AI service returned incomplete MCQ options. Please try again.",
+            status_code=502,
+        )
+
+    letter_map = {"A": 0, "B": 1, "C": 2, "D": 3}
+    correct_key = correct.rstrip(".):").upper()
+    if correct_key in letter_map:
+        correct = normalized_options[letter_map[correct_key]]
+    elif correct not in normalized_options:
+        for option in normalized_options:
+            if option.lower() == correct.lower():
+                correct = option
+                break
+
+    if correct not in normalized_options:
+        raise GeminiServiceError(
+            "AI service returned an MCQ answer that does not match the options. Please try again.",
+            status_code=502,
+        )
+
+    return {
+        "question": question,
+        "options": normalized_options,
+        "correct": correct,
+        "explanation": explanation,
+    }
+
+
+def _normalize_mcqs(data: Any, count: int) -> list:
+    if isinstance(data, dict) and isinstance(data.get("questions"), list):
+        data = data["questions"]
+    elif isinstance(data, dict):
+        data = [data]
+
+    if not isinstance(data, list):
+        raise GeminiServiceError(
+            "AI service returned invalid MCQ data. Please try again.",
+            status_code=502,
+        )
+
+    questions = [_normalize_mcq(item) for item in data if isinstance(item, dict)]
+    if len(questions) < count:
+        raise GeminiServiceError(
+            "AI service returned fewer MCQs than requested. Please try again.",
+            status_code=502,
+        )
+
+    return questions[:count]
+
+
+async def get_ai_response(exam: str, language: str, messages: list) -> str:
+    if not messages:
+        raise GeminiServiceError("Message is required.", status_code=400)
+
+    user_message = _message_content(messages[-1])
+    if not user_message:
+        raise GeminiServiceError("Message content is required.", status_code=400)
+
+    lang_name = LANG_MAP.get(language, "Gujarati")
+    system_prompt = EXAM_PROMPTS.get(exam, EXAM_PROMPTS["GPSC"]).format(language=lang_name)
+
+    history = []
+    for msg in messages[:-1]:
+        content = _message_content(msg)
+        if not content:
+            continue
+        history.append(types.Content(
+            role=_message_role(msg),
+            parts=[types.Part(text=content)]
+        ))
+
+    contents = history + [types.Content(
+        role="user",
+        parts=[types.Part(text=user_message)]
+    )]
+    config = types.GenerateContentConfig(system_instruction=system_prompt)
+
+    return await _generate_text(contents, config)
+
+
+async def generate_mcqs(exam: str, language: str, topic: Optional[str] = None, count: int = 10) -> list:
+    count = max(1, min(count, 10))
+    lang_name = LANG_MAP.get(language, "Gujarati")
+    topic_name = topic.strip() if topic and topic.strip() else "Random"
+    prompt = f"""Generate {count} unique multiple choice questions for {exam} exam in {lang_name}.
+Topic: {topic_name}
+Return ONLY a valid JSON array, nothing else.
+Each item must have exactly this shape:
+{{
+  "question": "question text",
+  "options": ["option A", "option B", "option C", "option D"],
+  "correct": "option A",
+  "explanation": "brief explanation in {lang_name}"
+}}
+Do not repeat questions. The "correct" value must exactly match one of the options."""
+
+    response_text = await _generate_text(
+        [types.Content(role="user", parts=[types.Part(text=prompt)])],
+        types.GenerateContentConfig(
+            response_mime_type="application/json",
+            temperature=0.7,
+        ),
+    )
+
+    return _normalize_mcqs(_json_from_text(response_text), count)
+
+
+async def generate_mcq(exam: str, language: str, topic: Optional[str] = None) -> dict:
+    return (await generate_mcqs(exam, language, topic, 1))[0]

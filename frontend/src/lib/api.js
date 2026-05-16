@@ -26,3 +26,35 @@ export async function getProgress() {
   })
   return res.data
 }
+
+export async function generateMCQ(exam, language, topic, count = 1) {
+  const { data: { session } } = await supabase.auth.getSession()
+  const token = session?.access_token
+
+  const res = await axios.post(`${BASE}/api/mcq/generate`, {
+    exam,
+    language,
+    topic,
+    count
+  }, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+  return res.data
+}
+
+export async function submitMCQ({ questionId, selectedAnswer, correctAnswer, exam, topic }) {
+  const { data: { session } } = await supabase.auth.getSession()
+  const token = session?.access_token
+
+  const res = await axios.post(`${BASE}/api/mcq/submit`, {
+    user_id: session?.user?.id,
+    question_id: questionId,
+    selected_answer: selectedAnswer,
+    correct_answer: correctAnswer,
+    exam,
+    topic
+  }, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+  return res.data
+}
