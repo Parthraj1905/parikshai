@@ -32,6 +32,7 @@ export default function MCQ() {
   const [pendingSaves, setPendingSaves] = useState(0)
   const [saveError, setSaveError] = useState('')
   const question = questions[currentIndex] || null
+  const isLastQuestion = question && currentIndex + 1 >= questions.length
 
   async function loadBatch() {
     setLoading(true)
@@ -64,10 +65,7 @@ export default function MCQ() {
 
     if (currentIndex + 1 < questions.length) {
       setCurrentIndex(prev => prev + 1)
-      return
     }
-
-    loadBatch()
   }
 
   function changeTopic(value) {
@@ -200,18 +198,38 @@ export default function MCQ() {
               </div>
             )}
 
-            {selectedAnswer && (
+            {selectedAnswer && !isLastQuestion && (
               <button
                 onClick={nextQuestion}
                 disabled={loading}
                 className="w-full bg-orange-500 text-white py-4 rounded-xl font-bold text-lg hover:bg-orange-600 disabled:opacity-60"
               >
-                {loading
-                  ? 'Loading 10 questions...'
-                  : currentIndex + 1 < questions.length
-                    ? 'Next Question'
-                    : 'Load 10 More'}
+                Next Question
               </button>
+            )}
+
+            {selectedAnswer && isLastQuestion && (
+              <div className="bg-white rounded-2xl p-4 shadow space-y-3">
+                <div className="text-center">
+                  <p className="font-bold text-gray-800">Set complete</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    You scored {score.correct}/{score.total} in this practice session.
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="w-full bg-orange-500 text-white py-3 rounded-xl font-bold hover:bg-orange-600"
+                >
+                  View Progress
+                </button>
+                <button
+                  onClick={loadBatch}
+                  disabled={loading}
+                  className="w-full bg-white text-orange-500 py-3 rounded-xl font-bold border-2 border-orange-300 hover:bg-orange-50 disabled:opacity-60"
+                >
+                  {loading ? 'Loading 10 questions...' : 'Load Another 10'}
+                </button>
+              </div>
             )}
 
             {pendingSaves > 0 && <p className="text-center text-xs text-gray-400">Saving progress...</p>}

@@ -123,7 +123,6 @@ async def submit(req: SubmitMCQRequest, authorization: str = Header(...)):
             "user_progress",
             {
                 "user_id": user_id,
-                "question_id": req.question_id,
                 "selected_answer": req.selected_answer,
                 "correct_answer": req.correct_answer,
                 "exam": req.exam,
