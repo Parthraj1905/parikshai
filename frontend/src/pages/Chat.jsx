@@ -156,7 +156,7 @@ export default function Chat({ exam, lang }) {
               listening ? 'text-red-500 animate-pulse' : 'text-gray-400 hover:text-orange-600 hover:bg-orange-50'
             }`}
           >
-            🎤
+            🎤︎︎
           </button>
           <textarea
             ref={el => { inputRef.current = el; textareaRef.current = el }}
