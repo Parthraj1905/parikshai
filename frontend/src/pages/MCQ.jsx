@@ -105,53 +105,50 @@ export default function MCQ() {
 
   function optionClass(option) {
     if (!selectedAnswer) {
-      return 'bg-white text-gray-800 border-gray-200 hover:border-orange-300 hover:bg-orange-50'
+      return 'bg-white text-gray-800 border-gray-200 hover:border-black'
     }
 
     if (option === question.correct) {
-      return 'bg-green-100 text-green-800 border-green-400'
+      return 'bg-green-50 text-green-900 border-green-500 ring-1 ring-green-500'
     }
 
     if (option === selectedAnswer) {
-      return 'bg-red-100 text-red-800 border-red-400'
+      return 'bg-red-50 text-red-900 border-red-500 ring-1 ring-red-500'
     }
 
-    return 'bg-white text-gray-500 border-gray-200'
+    return 'bg-white text-gray-400 border-gray-100 opacity-50'
   }
 
   return (
-    <div className="min-h-screen bg-orange-50 p-6">
-      <div className="max-w-md mx-auto">
-        <div className="flex items-center justify-between gap-3 mb-6">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/')} className="text-xl">←</button>
+    <div className="min-h-screen p-6">
+      <div className="max-w-md mx-auto mt-4">
+        <div className="flex items-center justify-between gap-3 mb-8">
+          <div className="flex items-center gap-4">
+            <button onClick={() => navigate('/')} className="text-gray-400 hover:text-black transition-colors">←</button>
             <div>
-              <h2 className="text-xl font-bold text-orange-600">MCQ Practice</h2>
+              <h2 className="text-sm font-bold text-gray-900">MCQ Practice</h2>
               <p className="text-xs text-gray-500">{exam}</p>
             </div>
           </div>
-          <div className="bg-white border border-orange-200 rounded-xl px-3 py-2 text-sm font-bold text-orange-600">
-            {score.correct}/{score.total} correct
+          <div className="bg-gray-100 rounded-lg px-3 py-1.5 text-xs font-bold text-gray-700">
+            {score.correct} / {score.total} Correct
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-4 shadow mb-4">
-          <label className="block text-sm font-semibold text-gray-600 mb-2" htmlFor="topic">
-            Topic
-          </label>
+        <div className="mb-6">
           <select
             id="topic"
             value={topic}
             onChange={e => changeTopic(e.target.value)}
             disabled={loading || (question && !selectedAnswer)}
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-white text-gray-800 focus:outline-orange-400"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-white text-sm text-gray-800 outline-none transition-all disabled:opacity-50"
           >
             {topics.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm mb-4">
+          <div className="bg-red-50 border border-red-100 text-red-600 rounded-xl p-4 text-sm mb-6">
             {error}
           </div>
         )}
@@ -160,20 +157,19 @@ export default function MCQ() {
           <button
             onClick={loadBatch}
             disabled={loading}
-            className="w-full bg-orange-500 text-white py-4 rounded-xl font-bold text-lg hover:bg-orange-600 disabled:opacity-60"
+            className="w-full bg-black text-white py-4 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
           >
-            {loading ? 'Loading 10 questions...' : 'Load 10 Questions'}
+            {loading ? 'Generating Content...' : 'Start Session'}
           </button>
         )}
 
         {question && (
-          <div className="space-y-4">
-            <p className="text-center text-xs font-semibold text-gray-400">
-              Question {currentIndex + 1} of {questions.length}
-            </p>
-
-            <div className="bg-white rounded-2xl p-4 shadow">
-              <p className="font-bold text-gray-800 leading-6">{question.question}</p>
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-xs font-semibold text-gray-400 tracking-wider uppercase">Question {currentIndex + 1} of {questions.length}</span>
+              </div>
+              <p className="text-base font-medium text-gray-900 leading-relaxed">{question.question}</p>
             </div>
 
             <div className="space-y-3">
@@ -182,7 +178,7 @@ export default function MCQ() {
                   key={option}
                   onClick={() => chooseAnswer(option)}
                   disabled={Boolean(selectedAnswer)}
-                  className={`w-full text-left border-2 rounded-xl p-4 font-semibold transition-all ${optionClass(option)}`}
+                  className={`w-full text-left border rounded-xl p-4 text-sm font-medium transition-all ${optionClass(option)}`}
                 >
                   {option}
                 </button>
@@ -190,11 +186,11 @@ export default function MCQ() {
             </div>
 
             {selectedAnswer && (
-              <div className="bg-white rounded-2xl p-4 shadow">
-                <p className="text-sm font-bold text-gray-700 mb-2">
-                  {selectedAnswer === question.correct ? 'Correct answer' : `Correct answer: ${question.correct}`}
+              <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
+                <p className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-2">
+                  {selectedAnswer === question.correct ? 'Correct' : 'Explanation'}
                 </p>
-                <p className="text-sm text-gray-600 leading-6">{question.explanation}</p>
+                <p className="text-sm text-gray-600 leading-relaxed">{question.explanation}</p>
               </div>
             )}
 
@@ -202,38 +198,40 @@ export default function MCQ() {
               <button
                 onClick={nextQuestion}
                 disabled={loading}
-                className="w-full bg-orange-500 text-white py-4 rounded-xl font-bold text-lg hover:bg-orange-600 disabled:opacity-60"
+                className="w-full bg-black text-white py-4 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
               >
                 Next Question
               </button>
             )}
 
             {selectedAnswer && isLastQuestion && (
-              <div className="bg-white rounded-2xl p-4 shadow space-y-3">
-                <div className="text-center">
-                  <p className="font-bold text-gray-800">Set complete</p>
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mt-8">
+                <div className="text-center mb-6">
+                  <p className="text-lg font-bold text-gray-900">Session Complete</p>
                   <p className="text-sm text-gray-500 mt-1">
-                    You scored {score.correct}/{score.total} in this practice session.
+                    Final Score: {score.correct} / {score.total}
                   </p>
                 </div>
-                <button
-                  onClick={() => navigate('/dashboard')}
-                  className="w-full bg-orange-500 text-white py-3 rounded-xl font-bold hover:bg-orange-600"
-                >
-                  View Progress
-                </button>
-                <button
-                  onClick={loadBatch}
-                  disabled={loading}
-                  className="w-full bg-white text-orange-500 py-3 rounded-xl font-bold border-2 border-orange-300 hover:bg-orange-50 disabled:opacity-60"
-                >
-                  {loading ? 'Loading 10 questions...' : 'Load Another 10'}
-                </button>
+                <div className="space-y-3">
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="w-full bg-black text-white py-3 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
+                  >
+                    View Analytics
+                  </button>
+                  <button
+                    onClick={loadBatch}
+                    disabled={loading}
+                    className="w-full bg-white text-gray-900 py-3 rounded-xl text-sm font-medium border border-gray-200 hover:border-gray-300 transition-colors disabled:opacity-50"
+                  >
+                    {loading ? 'Generating...' : 'New Session'}
+                  </button>
+                </div>
               </div>
             )}
 
-            {pendingSaves > 0 && <p className="text-center text-xs text-gray-400">Saving progress...</p>}
-            {saveError && <p className="text-center text-xs text-amber-600">{saveError}</p>}
+            {pendingSaves > 0 && <p className="text-center text-xs text-gray-400">Syncing data...</p>}
+            {saveError && <p className="text-center text-xs text-red-500">{saveError}</p>}
           </div>
         )}
       </div>

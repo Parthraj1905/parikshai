@@ -28,7 +28,6 @@ export default function Chat() {
       const reply = await sendMessage(exam, lang, newMessages)
       setMessages(prev => [...prev, { role: 'model', content: reply }])
 
-      // TTS
       const utterance = new SpeechSynthesisUtterance(reply)
       utterance.lang = lang === 'gu' ? 'gu-IN' : lang === 'hi' ? 'hi-IN' : 'en-US'
       speechSynthesis.speak(utterance)
@@ -46,25 +45,27 @@ export default function Chat() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-orange-50">
-      <div className="bg-orange-500 text-white p-4 flex items-center gap-3">
-        <button onClick={() => navigate('/')} className="text-xl">←</button>
-        <div>
-          <p className="font-bold">{exam} Tutor</p>
-          <p className="text-xs opacity-80">{lang === 'gu' ? 'ગુજરાતી' : lang === 'hi' ? 'हिंदी' : 'English'}</p>
+    <div className="flex flex-col h-screen">
+      <div className="bg-white border-b border-gray-100 p-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button onClick={() => navigate('/')} className="text-gray-400 hover:text-black transition-colors">←</button>
+          <div>
+            <p className="font-bold text-sm text-gray-900">{exam} Tutor</p>
+            <p className="text-xs text-gray-500">{lang === 'gu' ? 'ગુજરાતી' : lang === 'hi' ? 'हिंदी' : 'English'}</p>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {messages.length === 0 && (
-          <p className="text-center text-gray-400 mt-10">કોઈ પણ સવાલ પૂછો...</p>
+          <p className="text-center text-gray-400 mt-10 text-sm">How can I help you prepare?</p>
         )}
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${
+            <div className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed ${
               m.role === 'user'
-                ? 'bg-orange-500 text-white rounded-br-none'
-                : 'bg-white text-gray-800 shadow rounded-bl-none'
+                ? 'bg-black text-white rounded-br-sm'
+                : 'bg-white border border-gray-100 text-gray-800 shadow-sm rounded-bl-sm'
             }`}>
               <span dangerouslySetInnerHTML={{ 
                 __html: m.content
@@ -76,22 +77,24 @@ export default function Chat() {
         ))}
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-white p-3 rounded-2xl shadow text-gray-400 text-sm">વિચારી રહ્યો છું...</div>
+            <div className="bg-white border border-gray-100 p-4 rounded-2xl rounded-bl-sm shadow-sm text-gray-400 text-sm">
+              <span className="animate-pulse">Thinking...</span>
+            </div>
           </div>
         )}
         <div ref={bottomRef} />
       </div>
 
-      <div className="p-4 bg-white border-t flex gap-2">
-        <button onClick={voiceInput} className="bg-orange-100 p-3 rounded-xl text-orange-600 text-lg">🎤</button>
+      <div className="p-4 bg-white border-t border-gray-100 flex gap-3">
+        <button onClick={voiceInput} className="bg-gray-50 p-3 rounded-xl text-gray-500 hover:text-black transition-colors">🎤</button>
         <input
-          className="flex-1 border rounded-xl px-4 focus:outline-orange-400"
-          placeholder="સવાલ લખો..."
+          className="flex-1 border border-gray-200 rounded-xl px-4 text-sm outline-none transition-all"
+          placeholder="Ask a question..."
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && send()}
         />
-        <button onClick={send} className="bg-orange-500 text-white px-4 py-3 rounded-xl font-bold">→</button>
+        <button onClick={send} className="bg-black text-white px-5 py-3 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors">→</button>
       </div>
     </div>
   )
