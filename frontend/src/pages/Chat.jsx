@@ -243,7 +243,7 @@ export default function Chat({ exam, lang }) {
             }`}
             title="Voice input"
           >
-            🎤
+            🎤︎︎
           </button>
           <textarea
             ref={el => { inputRef.current = el; textareaRef.current = el }}
