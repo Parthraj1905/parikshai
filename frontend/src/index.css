@@ -10,12 +10,171 @@
   }
 
   body {
-    background-color: #f7f7f5;
-    color: #111;
+    background-color: #fafafa;
+    color: #1a1a1a;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #e5e5e5; border-radius: 4px; }
+  /* Dark mode */
+  .dark body,
+  body.dark {
+    background-color: #0a0a0a;
+    color: #e5e5e5;
+  }
+
+  .dark .bg-\[#fafafa\] { background-color: #0a0a0a !important; }
+  .dark .bg-\[#f7f7f5\] { background-color: #0f0f0f !important; }
+  .dark .bg-white { background-color: #1a1a1a !important; }
+  .dark .bg-gray-50 { background-color: #1f1f1f !important; }
+  .dark .bg-gray-100 { background-color: #262626 !important; }
+  .dark .bg-gray-200 { background-color: #2e2e2e !important; }
+  .dark .text-gray-900 { color: #e5e5e5 !important; }
+  .dark .text-gray-800 { color: #d4d4d4 !important; }
+  .dark .text-gray-700 { color: #a3a3a3 !important; }
+  .dark .text-gray-600 { color: #808080 !important; }
+  .dark .text-gray-500 { color: #666666 !important; }
+  .dark .text-gray-400 { color: #525252 !important; }
+  .dark .border-gray-100 { border-color: #262626 !important; }
+  .dark .border-gray-200 { border-color: #333333 !important; }
+  .dark .hover\:bg-gray-50:hover { background-color: #1f1f1f !important; }
+  .dark .hover\:bg-gray-100:hover { background-color: #262626 !important; }
+  .dark .hover\:text-gray-800:hover { color: #d4d4d4 !important; }
+  .dark .hover\:text-gray-600:hover { color: #808080 !important; }
+  .dark .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3) !important; }
+  .dark .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4) !important; }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #d4d4d4;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #a3a3a3;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: #404040;
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: #555555;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  /* Button styles */
+  .btn-primary {
+    @apply bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-xl transition-all duration-200;
+  }
+
+  /* Card styles */
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100 p-5 transition-all duration-200;
+  }
+
+  .card-hover {
+    @apply hover:shadow-md hover:border-gray-200;
+  }
+
+  /* Input styles */
+  .input {
+    @apply w-full bg-gray-50 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:bg-white transition-all duration-200;
+  }
+
+  /* Badge styles */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-primary {
+    @apply bg-orange-100 text-orange-700;
+  }
+
+  .badge-success {
+    @apply bg-green-100 text-green-700;
+  }
+
+  .badge-error {
+    @apply bg-red-100 text-red-700;
+  }
+}
+
+@layer utilities {
+  /* Animation utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.3s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.2s ease-out;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }

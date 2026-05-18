@@ -19,7 +19,10 @@ export default function App() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen bg-[#171717]">
-      <div className="w-8 h-8 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-10 h-10 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
+        <p className="text-gray-400 text-sm animate-pulse">Loading ParikshAI...</p>
+      </div>
     </div>
   )
 

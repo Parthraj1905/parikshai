@@ -72,45 +72,45 @@ export default function MCQ({ exam, lang }) {
   }
 
   function optionStyle(option) {
-    if (!selectedAnswer) return 'bg-white text-gray-700 hover:bg-gray-50'
-    if (option === question.correct) return 'bg-green-50 text-green-800'
-    if (option === selectedAnswer) return 'bg-red-50 text-red-700'
-    return 'bg-white text-gray-400'
+    if (!selectedAnswer) return 'bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#262626] border border-gray-100 dark:border-gray-800'
+    if (option === question.correct) return 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-400 border border-green-100 dark:border-green-800'
+    if (option === selectedAnswer) return 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-100 dark:border-red-800'
+    return 'bg-white dark:bg-[#1a1a1a] text-gray-400 dark:text-gray-600 border border-gray-100 dark:border-gray-800'
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#f7f7f5]">
+    <div className="flex-1 overflow-y-auto bg-[#f7f7f5] dark:bg-[#121212]">
       <div className="max-w-2xl mx-auto px-4 md:px-6 py-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-gray-900 font-bold text-base">MCQ Practice</h2>
-            <p className="text-gray-400 text-xs">{exam} · {topic}</p>
+            <h2 className="text-gray-900 dark:text-gray-100 font-bold text-base">MCQ Practice</h2>
+            <p className="text-gray-400 dark:text-gray-500 text-xs">{exam} · {topic}</p>
           </div>
-          <div className="bg-white rounded-xl px-4 py-2 text-sm font-bold text-gray-700">
+          <div className="bg-white dark:bg-[#1a1a1a] rounded-xl px-4 py-2 text-sm font-bold text-gray-700 dark:text-gray-300">
             {score.correct}/{score.total}
           </div>
         </div>
 
         {questions.length > 0 && (
           <div className="mb-6">
-            <div className="flex justify-between text-xs text-gray-400 mb-2">
+            <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mb-2">
               <span>Question {currentIndex + 1} of {questions.length}</span>
               <span>{Math.round(progress)}%</span>
             </div>
-            <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
+            <div className="h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
               <div className="h-full bg-orange-600 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
             </div>
           </div>
         )}
 
         <div className="mb-5">
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2.5">Topic</p>
+          <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2.5">Topic</p>
           <div className="flex flex-wrap gap-2">
             {topics.map(t => (
               <button key={t} onClick={() => { setTopic(t); setQuestions([]); setSelectedAnswer('') }}
                 disabled={loading || (question && !selectedAnswer)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  topic === t ? 'bg-orange-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                  topic === t ? 'bg-orange-600 text-white' : 'bg-white dark:bg-[#1a1a1a] text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#262626] hover:text-gray-800 dark:hover:text-gray-200'
                 }`}>
                 {t}
               </button>
@@ -119,7 +119,7 @@ export default function MCQ({ exam, lang }) {
         </div>
 
         {error && (
-          <div className="bg-red-50 text-red-600 rounded-xl px-4 py-3 text-sm mb-4">{error}</div>
+          <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl px-4 py-3 text-sm mb-4">{error}</div>
         )}
 
         {!question && (
@@ -136,8 +136,8 @@ export default function MCQ({ exam, lang }) {
 
         {question && (
           <div className="space-y-3">
-            <div className="bg-white rounded-2xl p-5">
-              <p className="text-gray-900 font-semibold leading-relaxed">{question.question}</p>
+            <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-800">
+              <p className="text-gray-900 dark:text-gray-100 font-semibold leading-relaxed">{question.question}</p>
             </div>
 
             <div className="space-y-2">
@@ -150,11 +150,11 @@ export default function MCQ({ exam, lang }) {
             </div>
 
             {selectedAnswer && (
-              <div className={`rounded-2xl p-4 ${selectedAnswer === question.correct ? 'bg-green-50' : 'bg-red-50'}`}>
-                <p className={`text-xs font-bold mb-1.5 ${selectedAnswer === question.correct ? 'text-green-700' : 'text-red-600'}`}>
+              <div className={`rounded-2xl p-4 ${selectedAnswer === question.correct ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
+                <p className={`text-xs font-bold mb-1.5 ${selectedAnswer === question.correct ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                   {selectedAnswer === question.correct ? '✓ Correct!' : `✗ Correct answer: ${question.correct}`}
                 </p>
-                <p className="text-gray-600 text-sm leading-relaxed">{question.explanation}</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">{question.explanation}</p>
               </div>
             )}
 
@@ -166,10 +166,10 @@ export default function MCQ({ exam, lang }) {
             )}
 
             {selectedAnswer && isLastQuestion && (
-              <div className="bg-white rounded-2xl p-5 space-y-4 text-center">
+              <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-5 space-y-4 text-center shadow-sm border border-gray-100 dark:border-gray-800">
                 <div className="text-3xl mb-1">{score.correct / score.total >= 0.8 ? '🏆' : score.correct / score.total >= 0.5 ? '👍' : '💪'}</div>
-                <p className="text-gray-900 font-bold">Set Complete</p>
-                <p className="text-gray-400 text-sm">{score.correct} / {score.total} correct</p>
+                <p className="text-gray-900 dark:text-gray-100 font-bold">Set Complete</p>
+                <p className="text-gray-400 dark:text-gray-500 text-sm">{score.correct} / {score.total} correct</p>
                 <button onClick={loadBatch} disabled={loading}
                   className="w-full bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white py-3 rounded-xl font-bold transition-all">
                   Load Another {BATCH_SIZE}
@@ -177,7 +177,7 @@ export default function MCQ({ exam, lang }) {
               </div>
             )}
 
-            {pendingSaves > 0 && <p className="text-center text-xs text-gray-400">Saving...</p>}
+            {pendingSaves > 0 && <p className="text-center text-xs text-gray-400 dark:text-gray-600">Saving...</p>}
           </div>
         )}
       </div>
