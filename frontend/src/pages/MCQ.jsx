@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
 import { generateMCQ, submitMCQ } from '../lib/api'
 
 const TOPICS = {
@@ -16,13 +15,9 @@ function createQuestionId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
-export default function MCQ() {
-  const { state } = useLocation()
-  const navigate = useNavigate()
-  const { exam, lang } = state || { exam: 'GPSC', lang: 'gu' }
+export default function MCQ({ exam, lang }) {
   const topics = TOPICS[exam] || TOPICS.GPSC
-
-  const [topic, setTopic] = useState(state?.topic || 'Random')
+  const [topic, setTopic] = useState('Random')
   const [questions, setQuestions] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState('')
@@ -30,9 +25,10 @@ export default function MCQ() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [pendingSaves, setPendingSaves] = useState(0)
-  const [saveError, setSaveError] = useState('')
+
   const question = questions[currentIndex] || null
   const isLastQuestion = question && currentIndex + 1 >= questions.length
+  const progress = questions.length ? ((currentIndex + (selectedAnswer ? 1 : 0)) / questions.length) * 100 : 0
 
   async function loadBatch() {
     setLoading(true)
@@ -40,198 +36,148 @@ export default function MCQ() {
     setQuestions([])
     setCurrentIndex(0)
     setSelectedAnswer('')
-    setSaveError('')
-
     try {
-      const questionTopic = topic === 'Random' ? 'Random' : topic
-      const data = await generateMCQ(exam, lang, questionTopic === 'Random' ? null : questionTopic, BATCH_SIZE)
-      const loadedQuestions = (data.questions || [data]).map(item => ({
+      const data = await generateMCQ(exam, lang, topic === 'Random' ? null : topic, BATCH_SIZE)
+      const loaded = (data.questions || [data]).map(item => ({
         ...item,
         id: createQuestionId(),
-        topic: questionTopic,
+        topic,
       }))
-      setQuestions(loadedQuestions)
+      setQuestions(loaded)
     } catch (e) {
       setError(e.response?.data?.detail || 'Could not load questions. Try again.')
     }
-
     setLoading(false)
-  }
-
-  function nextQuestion() {
-    setError('')
-    setSelectedAnswer('')
-    setSaveError('')
-
-    if (currentIndex + 1 < questions.length) {
-      setCurrentIndex(prev => prev + 1)
-    }
-  }
-
-  function changeTopic(value) {
-    setTopic(value)
-    setQuestions([])
-    setCurrentIndex(0)
-    setSelectedAnswer('')
-    setError('')
-    setSaveError('')
   }
 
   async function chooseAnswer(option) {
     if (!question || selectedAnswer) return
-
     const isCorrect = option === question.correct
     setSelectedAnswer(option)
-    setScore(prev => ({
-      correct: prev.correct + (isCorrect ? 1 : 0),
-      total: prev.total + 1,
-    }))
-
-    setPendingSaves(prev => prev + 1)
+    setScore(prev => ({ correct: prev.correct + (isCorrect ? 1 : 0), total: prev.total + 1 }))
+    setPendingSaves(p => p + 1)
     submitMCQ({
-        questionId: question.id,
-        selectedAnswer: option,
-        correctAnswer: question.correct,
-        exam,
-        topic: question.topic,
-      })
-      .then(() => setSaveError(''))
-      .catch(e => {
-        console.error(e)
-        setSaveError('Progress is syncing in the background. Practice can continue.')
-      })
-      .finally(() => setPendingSaves(prev => Math.max(0, prev - 1)))
+      questionId: question.id,
+      selectedAnswer: option,
+      correctAnswer: question.correct,
+      exam,
+      topic: question.topic,
+    }).finally(() => setPendingSaves(p => Math.max(0, p - 1)))
   }
 
-  function optionClass(option) {
-    if (!selectedAnswer) {
-      return 'bg-white text-gray-800 border-gray-200 hover:border-black'
-    }
+  function nextQuestion() {
+    setSelectedAnswer('')
+    setError('')
+    if (currentIndex + 1 < questions.length) setCurrentIndex(p => p + 1)
+  }
 
-    if (option === question.correct) {
-      return 'bg-green-50 text-green-900 border-green-500 ring-1 ring-green-500'
-    }
-
-    if (option === selectedAnswer) {
-      return 'bg-red-50 text-red-900 border-red-500 ring-1 ring-red-500'
-    }
-
-    return 'bg-white text-gray-400 border-gray-100 opacity-50'
+  function optionStyle(option) {
+    if (!selectedAnswer) return 'bg-white text-gray-700 hover:bg-gray-50'
+    if (option === question.correct) return 'bg-green-50 text-green-800'
+    if (option === selectedAnswer) return 'bg-red-50 text-red-700'
+    return 'bg-white text-gray-400'
   }
 
   return (
-    <div className="min-h-screen p-6">
-      <div className="max-w-md mx-auto mt-4">
-        <div className="flex items-center justify-between gap-3 mb-8">
-          <div className="flex items-center gap-4">
-            <button onClick={() => navigate('/')} className="text-gray-400 hover:text-black transition-colors">←</button>
-            <div>
-              <h2 className="text-sm font-bold text-gray-900">MCQ Practice</h2>
-              <p className="text-xs text-gray-500">{exam}</p>
+    <div className="flex-1 overflow-y-auto bg-[#f7f7f5]">
+      <div className="max-w-2xl mx-auto px-4 md:px-6 py-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-gray-900 font-bold text-base">MCQ Practice</h2>
+            <p className="text-gray-400 text-xs">{exam} · {topic}</p>
+          </div>
+          <div className="bg-white rounded-xl px-4 py-2 text-sm font-bold text-gray-700">
+            {score.correct}/{score.total}
+          </div>
+        </div>
+
+        {questions.length > 0 && (
+          <div className="mb-6">
+            <div className="flex justify-between text-xs text-gray-400 mb-2">
+              <span>Question {currentIndex + 1} of {questions.length}</span>
+              <span>{Math.round(progress)}%</span>
             </div>
-          </div>
-          <div className="bg-gray-100 rounded-lg px-3 py-1.5 text-xs font-bold text-gray-700">
-            {score.correct} / {score.total} Correct
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <select
-            id="topic"
-            value={topic}
-            onChange={e => changeTopic(e.target.value)}
-            disabled={loading || (question && !selectedAnswer)}
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-white text-sm text-gray-800 outline-none transition-all disabled:opacity-50"
-          >
-            {topics.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </div>
-
-        {error && (
-          <div className="bg-red-50 border border-red-100 text-red-600 rounded-xl p-4 text-sm mb-6">
-            {error}
+            <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-full bg-orange-600 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+            </div>
           </div>
         )}
 
+        <div className="mb-5">
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2.5">Topic</p>
+          <div className="flex flex-wrap gap-2">
+            {topics.map(t => (
+              <button key={t} onClick={() => { setTopic(t); setQuestions([]); setSelectedAnswer('') }}
+                disabled={loading || (question && !selectedAnswer)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  topic === t ? 'bg-orange-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                }`}>
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 text-red-600 rounded-xl px-4 py-3 text-sm mb-4">{error}</div>
+        )}
+
         {!question && (
-          <button
-            onClick={loadBatch}
-            disabled={loading}
-            className="w-full bg-black text-white py-4 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
-          >
-            {loading ? 'Generating Content...' : 'Start Session'}
+          <button onClick={loadBatch} disabled={loading}
+            className="w-full bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white py-4 rounded-xl font-bold transition-all">
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Loading {BATCH_SIZE} questions...
+              </span>
+            ) : `Start ${BATCH_SIZE} Questions`}
           </button>
         )}
 
         {question && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <div className="flex justify-between items-center mb-4">
-                <span className="text-xs font-semibold text-gray-400 tracking-wider uppercase">Question {currentIndex + 1} of {questions.length}</span>
-              </div>
-              <p className="text-base font-medium text-gray-900 leading-relaxed">{question.question}</p>
+          <div className="space-y-3">
+            <div className="bg-white rounded-2xl p-5">
+              <p className="text-gray-900 font-semibold leading-relaxed">{question.question}</p>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               {question.options.map(option => (
-                <button
-                  key={option}
-                  onClick={() => chooseAnswer(option)}
-                  disabled={Boolean(selectedAnswer)}
-                  className={`w-full text-left border rounded-xl p-4 text-sm font-medium transition-all ${optionClass(option)}`}
-                >
+                <button key={option} onClick={() => chooseAnswer(option)} disabled={Boolean(selectedAnswer)}
+                  className={`w-full text-left rounded-xl px-4 py-3.5 text-sm font-medium transition-all ${optionStyle(option)}`}>
                   {option}
                 </button>
               ))}
             </div>
 
             {selectedAnswer && (
-              <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
-                <p className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-2">
-                  {selectedAnswer === question.correct ? 'Correct' : 'Explanation'}
+              <div className={`rounded-2xl p-4 ${selectedAnswer === question.correct ? 'bg-green-50' : 'bg-red-50'}`}>
+                <p className={`text-xs font-bold mb-1.5 ${selectedAnswer === question.correct ? 'text-green-700' : 'text-red-600'}`}>
+                  {selectedAnswer === question.correct ? '✓ Correct!' : `✗ Correct answer: ${question.correct}`}
                 </p>
-                <p className="text-sm text-gray-600 leading-relaxed">{question.explanation}</p>
+                <p className="text-gray-600 text-sm leading-relaxed">{question.explanation}</p>
               </div>
             )}
 
             {selectedAnswer && !isLastQuestion && (
-              <button
-                onClick={nextQuestion}
-                disabled={loading}
-                className="w-full bg-black text-white py-4 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
-              >
-                Next Question
+              <button onClick={nextQuestion}
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3.5 rounded-xl font-bold transition-all">
+                Next Question →
               </button>
             )}
 
             {selectedAnswer && isLastQuestion && (
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mt-8">
-                <div className="text-center mb-6">
-                  <p className="text-lg font-bold text-gray-900">Session Complete</p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Final Score: {score.correct} / {score.total}
-                  </p>
-                </div>
-                <div className="space-y-3">
-                  <button
-                    onClick={() => navigate('/dashboard')}
-                    className="w-full bg-black text-white py-3 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
-                  >
-                    View Analytics
-                  </button>
-                  <button
-                    onClick={loadBatch}
-                    disabled={loading}
-                    className="w-full bg-white text-gray-900 py-3 rounded-xl text-sm font-medium border border-gray-200 hover:border-gray-300 transition-colors disabled:opacity-50"
-                  >
-                    {loading ? 'Generating...' : 'New Session'}
-                  </button>
-                </div>
+              <div className="bg-white rounded-2xl p-5 space-y-4 text-center">
+                <div className="text-3xl mb-1">{score.correct / score.total >= 0.8 ? '🏆' : score.correct / score.total >= 0.5 ? '👍' : '💪'}</div>
+                <p className="text-gray-900 font-bold">Set Complete</p>
+                <p className="text-gray-400 text-sm">{score.correct} / {score.total} correct</p>
+                <button onClick={loadBatch} disabled={loading}
+                  className="w-full bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white py-3 rounded-xl font-bold transition-all">
+                  Load Another {BATCH_SIZE}
+                </button>
               </div>
             )}
 
-            {pendingSaves > 0 && <p className="text-center text-xs text-gray-400">Syncing data...</p>}
-            {saveError && <p className="text-center text-xs text-red-500">{saveError}</p>}
+            {pendingSaves > 0 && <p className="text-center text-xs text-gray-400">Saving...</p>}
           </div>
         )}
       </div>
