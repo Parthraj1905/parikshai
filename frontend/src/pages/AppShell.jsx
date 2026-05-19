@@ -188,11 +188,21 @@ export default function AppShell({ session }) {
       {sidebarOpen && (
         <>
           <div
-            style={{ position: 'fixed', inset: 0, zIndex: 998, background: 'rgba(0,0,0,0.4)' }}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 998,
+              background: 'rgba(0,0,0,0.4)',
+              animation: 'fadeIn 0.2s ease'
+            }}
             onClick={() => setSidebarOpen(false)}
           />
-          <div style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: '240px', zIndex: 999, background: 'dark', overflowY: 'auto' }}
-            className="dark:bg-[#0f0f0f]">
+          <div
+            style={{
+              position: 'fixed', top: 0, left: 0, bottom: 0, width: '240px',
+              zIndex: 999, overflowY: 'auto',
+              animation: 'slideIn 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+            }}
+            className="dark:bg-[#0f0f0f]"
+          >
             <SidebarContent />
           </div>
         </>
@@ -205,7 +215,7 @@ export default function AppShell({ session }) {
             style={{ position: 'fixed', inset: 0, zIndex: 998, background: 'rgba(0,0,0,0.2)' }}
             onClick={() => setShowHistory(false)}
           />
-          <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: '280px', zIndex: 999, background: 'white', overflowY: 'auto' }}
+          <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: '280px', zIndex: 999, background: 'dark', overflowY: 'auto' }}
             className="dark:bg-[#0f0f0f] shadow-lg animate-slide-in-right">
             <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100 dark:border-gray-800">
               <h3 className="font-bold text-sm text-gray-900 dark:text-gray-100">Chat History</h3>
