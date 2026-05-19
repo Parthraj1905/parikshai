@@ -191,7 +191,7 @@ export default function AppShell({ session }) {
             style={{ position: 'fixed', inset: 0, zIndex: 998, background: 'rgba(0,0,0,0.4)' }}
             onClick={() => setSidebarOpen(false)}
           />
-          <div style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: '240px', zIndex: 999, background: 'white', overflowY: 'auto' }}
+          <div style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: '240px', zIndex: 999, background: 'dark', overflowY: 'auto' }}
             className="dark:bg-[#0f0f0f]">
             <SidebarContent />
           </div>
