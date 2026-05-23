@@ -44,11 +44,13 @@ function SparkleIcon({ size = 24 }) {
 
 export default function AppShell({ session }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarVisible, setSidebarVisible] = useState(true)
   const [exam, setExam] = useState('GPSC')
   const [lang, setLang] = useState('gu')
   const [showExamMenu, setShowExamMenu] = useState(false)
   const [showLangMenu, setShowLangMenu] = useState(false)
   const [chatHistory] = useState([])
+  const sidebarRef = useRef(null)
   const navigate = useNavigate()
   const location = useLocation()
   const toast = useToast()
@@ -56,6 +58,32 @@ export default function AppShell({ session }) {
   async function logout() {
     await supabase.auth.signOut()
     toast.success('Signed out')
+  }
+
+  useEffect(() => {
+    if (sidebarOpen) return
+
+    const hideTimer = setTimeout(() => setSidebarVisible(false), 220)
+    return () => clearTimeout(hideTimer)
+  }, [sidebarOpen])
+
+  useEffect(() => {
+    if (!sidebarOpen) return
+
+    function handleOutsidePointerDown(event) {
+      const isMobile = window.matchMedia('(max-width: 767px)').matches
+      if (!isMobile || sidebarRef.current?.contains(event.target)) return
+
+      setSidebarOpen(false)
+    }
+
+    document.addEventListener('pointerdown', handleOutsidePointerDown)
+    return () => document.removeEventListener('pointerdown', handleOutsidePointerDown)
+  }, [sidebarOpen])
+
+  function openSidebar() {
+    setSidebarVisible(true)
+    requestAnimationFrame(() => setSidebarOpen(true))
   }
 
   const navItems = [
@@ -75,7 +103,7 @@ export default function AppShell({ session }) {
     <div style={{ position: 'relative', display: 'flex', height: '100vh', display: 'flex', height: '100vh', background: '#1e1f20', overflow: 'hidden', fontFamily: "'Google Sans', sans-serif" }}>
 
       {/* Sidebar */}
-      <div className="absolute md:relative z-50"
+      <div ref={sidebarRef} className={`absolute md:relative z-50 transition-[transform,opacity,width,min-width] duration-200 ease-out ${sidebarOpen ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0 md:translate-x-0 md:opacity-100'} ${!sidebarOpen && !sidebarVisible ? '!hidden md:!flex' : ''}`}
       style={{
         width: sidebarOpen ? '256px' : '72px',
         minWidth: sidebarOpen ? '256px' : '72px',
@@ -84,7 +112,7 @@ export default function AppShell({ session }) {
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        transition: 'width 0.2s ease, min-width 0.2s ease',
+        transition: 'transform 0.2s ease, opacity 0.2s ease, width 0.2s ease, min-width 0.2s ease',
         overflow: 'hidden',
       }}>
         {/* Sidebar top */}
@@ -92,7 +120,7 @@ export default function AppShell({ session }) {
           {/* Hamburger + Logo row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', marginBottom: '4px' }}>
             <button
-              onClick={() => setSidebarOpen(o => !o)}
+              onClick={() => sidebarOpen ? setSidebarOpen(false) : openSidebar()}
               style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: 'transparent', border: 'none', color: '#e3e3e3', cursor: 'pointer', flexShrink: 0 }}
               onMouseEnter={e => e.currentTarget.style.background = '#35363a'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -227,8 +255,16 @@ export default function AppShell({ session }) {
       </div>
 
       {/* Main content */}
-      <main className="pl-[72px] md:pl-0"
+      <main className=""
       style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#1e1f20' }}>
+        {/* Mobile Header */}
+        <div className="md:hidden flex items-center gap-3 p-3 bg-[#1e1f20] border-b border-[#3c3c3e]">
+          <button onClick={openSidebar} className="text-[#e3e3e3] p-1">
+            {Icons.menu}
+          </button>
+          <span className="text-[#e3e3e3] font-bold text-[18px] tracking-tight">ParikshAI</span>
+        </div>
+
         <Routes>
           <Route path="/" element={<Chat exam={exam} lang={lang} />} />
           <Route path="/mcq" element={<MCQ exam={exam} lang={lang} />} />
