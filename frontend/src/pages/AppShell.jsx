@@ -164,7 +164,7 @@ export default function AppShell({ session }) {
   const userName = userEmail.split('@')[0] || 'User'
 
   return (
-    <div style={{ position: 'relative', display: 'flex', height: '100vh', display: 'flex', height: '100vh', background: '#1e1f20', overflow: 'hidden', fontFamily: "'Google Sans', sans-serif" }}>
+    <div style={{ position: 'relative', display: 'flex', height: '100dvh', display: 'flex', height: '100dvh', background: '#1e1f20', overflow: 'hidden', fontFamily: "'Google Sans', sans-serif" }}>
 
       {/* Sidebar */}
       <div ref={sidebarRef} className={`absolute md:relative z-50 transition-[transform,opacity,width,min-width] duration-200 ease-out ${sidebarOpen ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0 md:translate-x-0 md:opacity-100'} ${!sidebarOpen && !sidebarVisible ? '!hidden md:!flex' : ''}`}
