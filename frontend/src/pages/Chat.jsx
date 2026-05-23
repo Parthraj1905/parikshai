@@ -140,7 +140,7 @@ export default function Chat({ exam, lang, activeChatId, onChatLoaded, onChatSav
     : `Ask me anything about ${exam} exam preparation.`
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#1e1f20' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, background: '#1e1f20' }}>
       {/* Topbar */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -169,7 +169,7 @@ export default function Chat({ exam, lang, activeChatId, onChatLoaded, onChatSav
       </div>
 
       {/* Messages area */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 0' }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '24px 0', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
         <div style={{ maxWidth: '768px', margin: '0 auto', padding: '0 24px' }}>
 
           {/* Empty state */}
@@ -297,7 +297,7 @@ export default function Chat({ exam, lang, activeChatId, onChatLoaded, onChatSav
       </div>
 
       {/* Input area - Gemini style */}
-      <div style={{ padding: '16px 24px 20px', flexShrink: 0 }}>
+      <div style={{ padding: '12px 16px max(12px, env(safe-area-inset-bottom))', flexShrink: 0, background: '#1e1f20' }}>
         <div style={{ maxWidth: '768px', margin: '0 auto' }}>
           <div style={{
             background: '#2a2b2d',
