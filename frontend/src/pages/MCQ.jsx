@@ -5,7 +5,7 @@ const TOPICS = {
   GPSC: ['Random', 'Gujarat History', 'Gujarat Geography', 'Polity', 'Economy', 'Science'],
   SSC: ['Random', 'Quantitative Aptitude', 'Reasoning', 'English', 'General Awareness', 'Current Affairs'],
   RRB: ['Random', 'Railway GK', 'Reasoning', 'Mathematics', 'General Science', 'Current Affairs'],
-  UPSC: ['Random', 'History', 'Polity', 'Geography', 'Economy', 'Environment', 'Science and Technology'],
+  UPSC: ['Random', 'History', 'Polity', 'Geography', 'Economy', 'Environment', 'Science & Tech'],
 }
 
 const BATCH_SIZE = 10
@@ -24,29 +24,18 @@ export default function MCQ({ exam, lang }) {
   const [score, setScore] = useState({ correct: 0, total: 0 })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [pendingSaves, setPendingSaves] = useState(0)
 
   const question = questions[currentIndex] || null
-  const isLastQuestion = question && currentIndex + 1 >= questions.length
+  const isLast = question && currentIndex + 1 >= questions.length
   const progress = questions.length ? ((currentIndex + (selectedAnswer ? 1 : 0)) / questions.length) * 100 : 0
 
   async function loadBatch() {
-    setLoading(true)
-    setError('')
-    setQuestions([])
-    setCurrentIndex(0)
-    setSelectedAnswer('')
+    setLoading(true); setError(''); setQuestions([]); setCurrentIndex(0); setSelectedAnswer('')
     try {
       const data = await generateMCQ(exam, lang, topic === 'Random' ? null : topic, BATCH_SIZE)
-      const loaded = (data.questions || [data]).map(item => ({
-        ...item,
-        id: createQuestionId(),
-        topic,
-      }))
+      const loaded = (data.questions || [data]).map(item => ({ ...item, id: createQuestionId(), topic }))
       setQuestions(loaded)
-    } catch (e) {
-      setError(e.response?.data?.detail || 'Could not load questions. Try again.')
-    }
+    } catch (e) { setError(e.response?.data?.detail || 'Could not load questions. Try again.') }
     setLoading(false)
   }
 
@@ -54,64 +43,65 @@ export default function MCQ({ exam, lang }) {
     if (!question || selectedAnswer) return
     const isCorrect = option === question.correct
     setSelectedAnswer(option)
-    setScore(prev => ({ correct: prev.correct + (isCorrect ? 1 : 0), total: prev.total + 1 }))
-    setPendingSaves(p => p + 1)
-    submitMCQ({
-      questionId: question.id,
-      selectedAnswer: option,
-      correctAnswer: question.correct,
-      exam,
-      topic: question.topic,
-    }).finally(() => setPendingSaves(p => Math.max(0, p - 1)))
+    setScore(p => ({ correct: p.correct + (isCorrect ? 1 : 0), total: p.total + 1 }))
+    submitMCQ({ questionId: question.id, selectedAnswer: option, correctAnswer: question.correct, exam, topic: question.topic }).catch(() => {})
   }
 
   function nextQuestion() {
-    setSelectedAnswer('')
-    setError('')
+    setSelectedAnswer(''); setError('')
     if (currentIndex + 1 < questions.length) setCurrentIndex(p => p + 1)
   }
 
-  function optionStyle(option) {
-    if (!selectedAnswer) return 'bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#262626] border border-gray-100 dark:border-gray-800'
-    if (option === question.correct) return 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-400 border border-green-100 dark:border-green-800'
-    if (option === selectedAnswer) return 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-100 dark:border-red-800'
-    return 'bg-white dark:bg-[#1a1a1a] text-gray-400 dark:text-gray-600 border border-gray-100 dark:border-gray-800'
+  const optionStyle = (option) => {
+    const base = { width: '100%', textAlign: 'left', padding: '14px 18px', borderRadius: '12px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.15s', border: '1px solid', fontFamily: 'inherit' }
+    if (!selectedAnswer) return { ...base, background: '#2a2b2d', borderColor: '#3c3c3e', color: '#e3e3e3' }
+    if (option === question.correct) return { ...base, background: 'rgba(34,197,94,0.1)', borderColor: 'rgba(34,197,94,0.4)', color: '#4ade80' }
+    if (option === selectedAnswer) return { ...base, background: 'rgba(239,68,68,0.1)', borderColor: 'rgba(239,68,68,0.3)', color: '#f87171' }
+    return { ...base, background: '#1e1f20', borderColor: '#3c3c3e', color: '#5f6368' }
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#f7f7f5] dark:bg-[#121212]">
-      <div className="max-w-2xl mx-auto px-4 md:px-6 py-6">
-        <div className="flex items-center justify-between mb-6">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#1e1f20', overflowY: 'auto', fontFamily: "'Google Sans', sans-serif" }}>
+      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '32px 24px', width: '100%', boxSizing: 'border-box' }}>
+
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
           <div>
-            <h2 className="text-gray-900 dark:text-gray-100 font-bold text-base">MCQ Practice</h2>
-            <p className="text-gray-400 dark:text-gray-500 text-xs">{exam} · {topic}</p>
+            <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#e3e3e3', margin: '0 0 4px' }}>MCQ Practice</h2>
+            <p style={{ fontSize: '13px', color: '#9aa0a6', margin: 0 }}>{exam} · {topic}</p>
           </div>
-          <div className="bg-white dark:bg-[#1a1a1a] rounded-xl px-4 py-2 text-sm font-bold text-gray-700 dark:text-gray-300">
+          <div style={{ background: '#2a2b2d', border: '1px solid #3c3c3e', borderRadius: '100px', padding: '8px 18px', fontSize: '14px', fontWeight: '600', color: '#e3e3e3' }}>
             {score.correct}/{score.total}
           </div>
         </div>
 
+        {/* Progress */}
         {questions.length > 0 && (
-          <div className="mb-6">
-            <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mb-2">
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#9aa0a6', marginBottom: '8px' }}>
               <span>Question {currentIndex + 1} of {questions.length}</span>
               <span>{Math.round(progress)}%</span>
             </div>
-            <div className="h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-              <div className="h-full bg-orange-600 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+            <div style={{ height: '3px', background: '#3c3c3e', borderRadius: '100px', overflow: 'hidden' }}>
+              <div style={{ height: '100%', background: 'linear-gradient(90deg, #8ab4f8, #c084fc)', borderRadius: '100px', width: `${progress}%`, transition: 'width 0.4s ease' }} />
             </div>
           </div>
         )}
 
-        <div className="mb-5">
-          <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2.5">Topic</p>
-          <div className="flex flex-wrap gap-2">
+        {/* Topic chips */}
+        <div style={{ marginBottom: '24px' }}>
+          <p style={{ fontSize: '11px', fontWeight: '600', color: '#5f6368', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>Topic</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             {topics.map(t => (
               <button key={t} onClick={() => { setTopic(t); setQuestions([]); setSelectedAnswer('') }}
                 disabled={loading || (question && !selectedAnswer)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  topic === t ? 'bg-orange-600 text-white' : 'bg-white dark:bg-[#1a1a1a] text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#262626] hover:text-gray-800 dark:hover:text-gray-200'
-                }`}>
+                style={{
+                  padding: '7px 16px', borderRadius: '100px', fontSize: '13px', fontWeight: '500',
+                  cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'inherit', border: '1px solid',
+                  background: topic === t ? 'rgba(138,180,248,0.15)' : 'transparent',
+                  borderColor: topic === t ? 'rgba(138,180,248,0.4)' : '#3c3c3e',
+                  color: topic === t ? '#8ab4f8' : '#9aa0a6',
+                }}>
                 {t}
               </button>
             ))}
@@ -119,68 +109,89 @@ export default function MCQ({ exam, lang }) {
         </div>
 
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl px-4 py-3 text-sm mb-4">{error}</div>
+          <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '12px', padding: '12px 16px', color: '#f87171', fontSize: '14px', marginBottom: '20px' }}>
+            {error}
+          </div>
         )}
 
+        {/* Start button */}
         {!question && (
-          <button onClick={loadBatch} disabled={loading}
-            className="w-full bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white py-4 rounded-xl font-bold transition-all">
+          <button onClick={loadBatch} disabled={loading} style={{
+            width: '100%', padding: '16px', borderRadius: '12px', border: 'none',
+            background: loading ? '#2a2b2d' : 'linear-gradient(135deg, #8ab4f8 0%, #c084fc 100%)',
+            color: loading ? '#9aa0a6' : '#131314', fontSize: '15px', fontWeight: '600',
+            cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+          }}>
             {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Loading {BATCH_SIZE} questions...
-              </span>
+              <>
+                <div style={{ width: '18px', height: '18px', border: '2px solid #5f6368', borderTopColor: '#9aa0a6', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                Generating {BATCH_SIZE} questions...
+              </>
             ) : `Start ${BATCH_SIZE} Questions`}
           </button>
         )}
 
+        {/* Question card */}
         {question && (
-          <div className="space-y-3">
-            <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-800">
-              <p className="text-gray-900 dark:text-gray-100 font-semibold leading-relaxed">{question.question}</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ background: '#2a2b2d', borderRadius: '16px', padding: '24px', border: '1px solid #3c3c3e' }}>
+              <p style={{ color: '#e3e3e3', fontSize: '15px', fontWeight: '500', lineHeight: '1.6', margin: 0 }}>{question.question}</p>
             </div>
 
-            <div className="space-y-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {question.options.map(option => (
-                <button key={option} onClick={() => chooseAnswer(option)} disabled={Boolean(selectedAnswer)}
-                  className={`w-full text-left rounded-xl px-4 py-3.5 text-sm font-medium transition-all ${optionStyle(option)}`}>
+                <button key={option} onClick={() => chooseAnswer(option)} disabled={Boolean(selectedAnswer)} style={optionStyle(option)}
+                  onMouseEnter={e => { if (!selectedAnswer) e.currentTarget.style.background = '#35363a' }}
+                  onMouseLeave={e => { if (!selectedAnswer) e.currentTarget.style.background = '#2a2b2d' }}
+                >
                   {option}
                 </button>
               ))}
             </div>
 
             {selectedAnswer && (
-              <div className={`rounded-2xl p-4 ${selectedAnswer === question.correct ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
-                <p className={`text-xs font-bold mb-1.5 ${selectedAnswer === question.correct ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                  {selectedAnswer === question.correct ? '✓ Correct!' : `✗ Correct answer: ${question.correct}`}
+              <div style={{
+                borderRadius: '12px', padding: '16px',
+                background: selectedAnswer === question.correct ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+                border: `1px solid ${selectedAnswer === question.correct ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`,
+              }}>
+                <p style={{ fontSize: '13px', fontWeight: '700', marginBottom: '8px', color: selectedAnswer === question.correct ? '#4ade80' : '#f87171' }}>
+                  {selectedAnswer === question.correct ? '✓ Correct!' : `✗ Correct: ${question.correct}`}
                 </p>
-                <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">{question.explanation}</p>
+                <p style={{ fontSize: '13px', color: '#9aa0a6', lineHeight: '1.55', margin: 0 }}>{question.explanation}</p>
               </div>
             )}
 
-            {selectedAnswer && !isLastQuestion && (
-              <button onClick={nextQuestion}
-                className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3.5 rounded-xl font-bold transition-all">
+            {selectedAnswer && !isLast && (
+              <button onClick={nextQuestion} style={{
+                padding: '14px', borderRadius: '100px', border: 'none',
+                background: 'linear-gradient(135deg, #8ab4f8 0%, #c084fc 100%)',
+                color: '#131314', fontSize: '14px', fontWeight: '600',
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}>
                 Next Question →
               </button>
             )}
 
-            {selectedAnswer && isLastQuestion && (
-              <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-5 space-y-4 text-center shadow-sm border border-gray-100 dark:border-gray-800">
-                <div className="text-3xl mb-1">{score.correct / score.total >= 0.8 ? '🏆' : score.correct / score.total >= 0.5 ? '👍' : '💪'}</div>
-                <p className="text-gray-900 dark:text-gray-100 font-bold">Set Complete</p>
-                <p className="text-gray-400 dark:text-gray-500 text-sm">{score.correct} / {score.total} correct</p>
-                <button onClick={loadBatch} disabled={loading}
-                  className="w-full bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white py-3 rounded-xl font-bold transition-all">
+            {selectedAnswer && isLast && (
+              <div style={{ background: '#2a2b2d', borderRadius: '16px', padding: '28px', textAlign: 'center', border: '1px solid #3c3c3e' }}>
+                <div style={{ fontSize: '36px', marginBottom: '12px' }}>{score.correct / score.total >= 0.8 ? '🏆' : score.correct / score.total >= 0.5 ? '👍' : '💪'}</div>
+                <p style={{ color: '#e3e3e3', fontWeight: '600', fontSize: '16px', margin: '0 0 8px' }}>Set Complete!</p>
+                <p style={{ color: '#9aa0a6', fontSize: '14px', margin: '0 0 20px' }}>{score.correct} / {score.total} correct</p>
+                <button onClick={loadBatch} disabled={loading} style={{
+                  padding: '12px 28px', borderRadius: '100px', border: 'none',
+                  background: 'linear-gradient(135deg, #8ab4f8 0%, #c084fc 100%)',
+                  color: '#131314', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit',
+                }}>
                   Load Another {BATCH_SIZE}
                 </button>
               </div>
             )}
-
-            {pendingSaves > 0 && <p className="text-center text-xs text-gray-400 dark:text-gray-600">Saving...</p>}
           </div>
         )}
       </div>
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }

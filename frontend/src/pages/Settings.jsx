@@ -3,127 +3,73 @@ import { useToast } from '../lib/ToastContext'
 import { supabase } from '../lib/supabase'
 
 export default function Settings() {
-  const { darkMode, toggleTheme, fontSize, increaseFontSize, decreaseFontSize } = useTheme()
+  const { fontSize, increaseFontSize, decreaseFontSize } = useTheme()
   const toast = useToast()
 
   async function handleLogout() {
     await supabase.auth.signOut()
-    toast.success('Logged out successfully')
+    toast.success('Signed out')
   }
 
+  const Row = ({ label, desc, right }) => (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid #3c3c3e' }}>
+      <div>
+        <p style={{ color: '#e3e3e3', fontSize: '14px', fontWeight: '500', margin: '0 0 2px' }}>{label}</p>
+        {desc && <p style={{ color: '#9aa0a6', fontSize: '12px', margin: 0 }}>{desc}</p>}
+      </div>
+      {right}
+    </div>
+  )
+
   return (
-    <div className="flex-1 overflow-y-auto bg-[#fafafa] dark:bg-[#0a0a0a]">
-      <div className="max-w-2xl mx-auto px-4 md:px-6 py-6 space-y-5">
-        {/* Header */}
-        <div className="mb-2">
-          <h2 className="text-gray-900 dark:text-gray-100 font-bold text-lg">Settings</h2>
-          <p className="text-gray-400 text-xs">Customize your experience</p>
+    <div style={{ flex: 1, overflowY: 'auto', background: '#1e1f20', fontFamily: "'Google Sans', sans-serif" }}>
+      <div style={{ maxWidth: '640px', margin: '0 auto', padding: '32px 24px' }}>
+        <div style={{ marginBottom: '28px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#e3e3e3', margin: '0 0 4px' }}>Settings</h2>
+          <p style={{ fontSize: '13px', color: '#9aa0a6', margin: 0 }}>Customize your experience</p>
         </div>
 
-        {/* Appearance Section */}
-        <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-800">
-          <h3 className="text-gray-900 dark:text-gray-100 font-bold text-sm mb-4 flex items-center gap-2">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-            </svg>
-            Appearance
-          </h3>
-          <div className="space-y-4">
-            {/* Dark Mode Toggle */}
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Dark Mode</p>
-                <p className="text-xs text-gray-400">Toggle dark/light theme</p>
+        {/* Appearance */}
+        <div style={{ background: '#2a2b2d', borderRadius: '16px', padding: '24px', border: '1px solid #3c3c3e', marginBottom: '16px' }}>
+          <h3 style={{ fontSize: '13px', fontWeight: '600', color: '#9aa0a6', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px' }}>Appearance</h3>
+          <Row
+            label="Font Size"
+            desc={`Current size: ${fontSize}px`}
+            right={
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button onClick={decreaseFontSize} disabled={fontSize <= 12} style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#3c3c3e', border: 'none', color: '#e3e3e3', fontSize: '14px', cursor: fontSize <= 12 ? 'not-allowed' : 'pointer', opacity: fontSize <= 12 ? 0.4 : 1 }}>A−</button>
+                <span style={{ fontSize: '14px', color: '#e3e3e3', width: '28px', textAlign: 'center' }}>{fontSize}</span>
+                <button onClick={increaseFontSize} disabled={fontSize >= 22} style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#3c3c3e', border: 'none', color: '#e3e3e3', fontSize: '14px', cursor: fontSize >= 22 ? 'not-allowed' : 'pointer', opacity: fontSize >= 22 ? 0.4 : 1 }}>A+</button>
               </div>
-              <button
-                onClick={toggleTheme}
-                className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${
-                  darkMode ? 'bg-orange-600' : 'bg-gray-200'
-                }`}
-              >
-                <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 flex items-center justify-center ${
-                  darkMode ? 'translate-x-6' : 'translate-x-0.5'
-                }`}>
-                  <span className="text-[10px]">{darkMode ? '🌙' : '☀️'}</span>
-                </div>
-              </button>
-            </div>
-
-            {/* Font Size */}
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Font Size</p>
-                <p className="text-xs text-gray-400">Adjust text size ({fontSize}px)</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={decreaseFontSize}
-                  disabled={fontSize <= 12}
-                  className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30 transition-all flex items-center justify-center text-sm font-bold"
-                >
-                  A−
-                </button>
-                <span className="text-sm font-medium text-gray-900 dark:text-gray-100 w-8 text-center">{fontSize}</span>
-                <button
-                  onClick={increaseFontSize}
-                  disabled={fontSize >= 22}
-                  className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30 transition-all flex items-center justify-center text-sm font-bold"
-                >
-                  A+
-                </button>
-              </div>
-            </div>
-          </div>
+            }
+          />
         </div>
 
-        {/* Account Section */}
-        <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-800">
-          <h3 className="text-gray-900 dark:text-gray-100 font-bold text-sm mb-4 flex items-center gap-2">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-            </svg>
-            Account
-          </h3>
-          <div className="space-y-3">
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition-all"
-            >
-              <div className="flex items-center gap-3">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-                </svg>
-                <span className="text-sm font-medium">Sign Out</span>
-              </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
-            </button>
-          </div>
+        {/* About */}
+        <div style={{ background: '#2a2b2d', borderRadius: '16px', padding: '24px', border: '1px solid #3c3c3e', marginBottom: '16px' }}>
+          <h3 style={{ fontSize: '13px', fontWeight: '600', color: '#9aa0a6', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px' }}>About</h3>
+          {[
+            ['Version', '1.0.0'],
+            ['Platform', 'Web (PWA)'],
+            ['AI Engine', 'Google Gemini'],
+          ].map(([k, v]) => (
+            <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid #3c3c3e' }}>
+              <span style={{ color: '#9aa0a6', fontSize: '14px' }}>{k}</span>
+              <span style={{ color: '#e3e3e3', fontSize: '14px', fontWeight: '500' }}>{v}</span>
+            </div>
+          ))}
         </div>
 
-        {/* About Section */}
-        <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-800">
-          <h3 className="text-gray-900 dark:text-gray-100 font-bold text-sm mb-4 flex items-center gap-2">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
-            </svg>
-            About
-          </h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Version</span>
-              <span className="text-gray-900 dark:text-gray-100 font-medium">1.0.0</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Platform</span>
-              <span className="text-gray-900 dark:text-gray-100 font-medium">Web</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Powered by</span>
-              <span className="text-orange-600 font-medium">Google Gemini AI</span>
-            </div>
-          </div>
+        {/* Account */}
+        <div style={{ background: '#2a2b2d', borderRadius: '16px', padding: '24px', border: '1px solid #3c3c3e' }}>
+          <h3 style={{ fontSize: '13px', fontWeight: '600', color: '#9aa0a6', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 16px' }}>Account</h3>
+          <button onClick={handleLogout} style={{
+            width: '100%', padding: '13px', borderRadius: '10px', border: '1px solid rgba(239,68,68,0.3)',
+            background: 'rgba(239,68,68,0.08)', color: '#f87171', fontSize: '14px', fontWeight: '600',
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>
+            Sign Out
+          </button>
         </div>
       </div>
     </div>

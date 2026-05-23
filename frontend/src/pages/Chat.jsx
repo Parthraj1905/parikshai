@@ -1,35 +1,59 @@
 import { useState, useRef, useEffect } from 'react'
 import { sendMessage } from '../lib/api'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+
+function SparkleIcon({ size = 28 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <defs>
+        <linearGradient id="sg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#8ab4f8"/>
+          <stop offset="50%" stopColor="#c084fc"/>
+          <stop offset="100%" stopColor="#f472b6"/>
+        </linearGradient>
+      </defs>
+      <path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z" fill="url(#sg)"/>
+    </svg>
+  )
+}
+
+function ThinkingDots() {
+  return (
+    <div style={{ display: 'flex', gap: '4px', alignItems: 'center', padding: '4px 0' }}>
+      {[0, 1, 2].map(i => (
+        <div key={i} style={{
+          width: '8px', height: '8px', borderRadius: '50%',
+          background: '#8ab4f8',
+          animation: 'bounceDot 1.2s infinite',
+          animationDelay: `${i * 0.2}s`,
+        }} />
+      ))}
+    </div>
+  )
+}
+
+const IconCopy = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+const IconRegen = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+const IconMic = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+const IconSend = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+const IconAdd = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+const IconVol = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
 
 export default function Chat({ exam, lang }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [listening, setListening] = useState(false)
-  const [typingProgress, setTypingProgress] = useState(0)
+  const [copiedIdx, setCopiedIdx] = useState(null)
   const bottomRef = useRef()
-  const inputRef = useRef()
   const textareaRef = useRef()
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
-  useEffect(() => {
-    setMessages([])
-  }, [exam, lang])
-
-  // Typing indicator animation
-  useEffect(() => {
-    if (loading) {
-      const interval = setInterval(() => {
-        setTypingProgress(prev => (prev >= 100 ? 0 : prev + 10))
-      }, 100)
-      return () => clearInterval(interval)
-    } else {
-      setTypingProgress(0)
-    }
-  }, [loading])
+  useEffect(() => { setMessages([]) }, [exam, lang])
 
   async function send() {
     if (!input.trim() || loading) return
@@ -37,17 +61,13 @@ export default function Chat({ exam, lang }) {
     const newMessages = [...messages, userMsg]
     setMessages(newMessages)
     setInput('')
-    if (textareaRef.current) textareaRef.current.style.height = 'auto'
+    if (textareaRef.current) { textareaRef.current.style.height = 'auto' }
     setLoading(true)
-
     try {
       const reply = await sendMessage(exam, lang, newMessages)
       setMessages(prev => [...prev, { role: 'model', content: reply }])
-      const utterance = new SpeechSynthesisUtterance(reply)
-      utterance.lang = lang === 'gu' ? 'gu-IN' : lang === 'hi' ? 'hi-IN' : 'en-US'
-      speechSynthesis.speak(utterance)
     } catch (e) {
-      setMessages(prev => [...prev, { role: 'model', content: e.response?.data?.detail || 'Error. Try again.', error: true }])
+      setMessages(prev => [...prev, { role: 'model', content: e.response?.data?.detail || 'Something went wrong. Please try again.', error: true }])
     }
     setLoading(false)
   }
@@ -55,50 +75,24 @@ export default function Chat({ exam, lang }) {
   function voiceInput() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SR) return
-    const recognition = new SR()
-    recognition.lang = lang === 'gu' ? 'gu-IN' : lang === 'hi' ? 'hi-IN' : 'en-US'
-    recognition.onstart = () => setListening(true)
-    recognition.onend = () => setListening(false)
-    recognition.onresult = e => {
-      setInput(e.results[0][0].transcript)
-      inputRef.current?.focus()
-    }
-    recognition.start()
+    const r = new SR()
+    r.lang = lang === 'gu' ? 'gu-IN' : lang === 'hi' ? 'hi-IN' : 'en-US'
+    r.onstart = () => setListening(true)
+    r.onend = () => setListening(false)
+    r.onresult = e => { setInput(e.results[0][0].transcript); textareaRef.current?.focus() }
+    r.start()
   }
 
-  async function copyMessage(content) {
-    try {
-      await navigator.clipboard.writeText(content)
-    } catch (e) {
-      console.error('Failed to copy:', e)
-    }
+  async function copyMsg(content, idx) {
+    await navigator.clipboard.writeText(content).catch(() => {})
+    setCopiedIdx(idx)
+    setTimeout(() => setCopiedIdx(null), 1500)
   }
 
-  function regenerateMessage(index) {
-    if (index < 0 || index >= messages.length) return
-    // Remove the AI message at index and send a new request
-    const prevMessages = messages.slice(0, index)
-    const userMessages = prevMessages.filter(m => m.role === 'user')
-    if (userMessages.length === 0) return
-    
-    const lastUserMsg = userMessages[userMessages.length - 1].content
-    setLoading(true)
-    sendMessage(exam, lang, [...prevMessages.filter(m => m.role === 'user'), { role: 'user', content: lastUserMsg }])
-      .then(reply => {
-        setMessages(prev => {
-          const newMsgs = [...prev]
-          newMsgs[index] = { role: 'model', content: reply }
-          return newMsgs
-        })
-      })
-      .catch(() => {
-        setMessages(prev => {
-          const newMsgs = [...prev]
-          newMsgs[index] = { role: 'model', content: 'Error. Try again.', error: true }
-          return newMsgs
-        })
-      })
-      .finally(() => setLoading(false))
+  function speak(content) {
+    const u = new SpeechSynthesisUtterance(content)
+    u.lang = lang === 'gu' ? 'gu-IN' : lang === 'hi' ? 'hi-IN' : 'en-US'
+    speechSynthesis.speak(u)
   }
 
   const langLabel = lang === 'gu' ? 'ગુજરાતી' : lang === 'hi' ? 'हिंदी' : 'English'
@@ -107,173 +101,236 @@ export default function Chat({ exam, lang }) {
     ? ['GPSC ના મુખ્ય વિષયો શું છે?', 'ભારતનો ઇતિહાસ સમજાવો', 'MCQ quiz start કરો']
     : lang === 'hi'
     ? [`${exam} के मुख्य विषय क्या हैं?`, 'भारत का इतिहास बताओ', 'MCQ practice शुरू करो']
-    : [`What are key topics for ${exam}?`, 'Explain Indian Constitution', 'Give me a practice quiz']
+    : [`What are key topics for ${exam}?`, 'Explain Indian Constitution', 'Start a practice quiz']
+
+  const emptyPrompt = lang === 'gu'
+    ? `${exam} પરીક્ષા માટે કોઈ પણ સવાલ પૂછો.`
+    : lang === 'hi'
+    ? `${exam} परीक्षा के बारे में कुछ भी पूछें।`
+    : `Ask me anything about ${exam} exam preparation.`
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-[#121212]">
-      {/* Header */}
-      <div className="hidden md:flex items-center justify-between px-6 py-4 bg-white dark:bg-[#1a1a1a] border-b border-gray-100 dark:border-gray-800">
-        <div>
-          <h2 className="text-gray-900 dark:text-gray-100 font-bold text-sm">{exam} AI Tutor</h2>
-          <p className="text-gray-400 dark:text-gray-500 text-xs">{langLabel} · Powered by Gemini</p>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#1e1f20' }}>
+      {/* Topbar */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 20px', height: '56px',
+        borderBottom: '1px solid #3c3c3e',
+        flexShrink: 0,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <SparkleIcon size={20} />
+          <span style={{ fontSize: '16px', fontWeight: '600', color: '#e3e3e3' }}>{exam} AI Tutor</span>
+          <span style={{ fontSize: '12px', color: '#5f6368', background: '#2a2b2d', padding: '3px 10px', borderRadius: '100px', border: '1px solid #3c3c3e' }}>
+            {langLabel} · Gemini
+          </span>
         </div>
         <button
           onClick={() => { setMessages([]); speechSynthesis.cancel() }}
-          className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors flex items-center gap-1"
+          style={{ fontSize: '13px', color: '#9aa0a6', background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px 12px', borderRadius: '100px' }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#35363a'; e.currentTarget.style.color = '#e3e3e3' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9aa0a6' }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 6h18"/><path d="M19 12H5"/><path d="M19 18H5"/>
-          </svg>
           Clear chat
         </button>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 space-y-5">
-        {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center pb-10 animate-fade-in">
-            <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center text-white font-black text-2xl mb-4 shadow-lg shadow-orange-500/20">
-              P
-            </div>
-            <h3 className="text-gray-900 dark:text-gray-100 font-bold text-lg mb-1">{exam} Tutor</h3>
-            <p className="text-gray-400 dark:text-gray-500 text-sm mb-8 max-w-xs">
-              {lang === 'gu'
-                ? `${exam} પરીક્ષા માટે કોઈ પણ સવાલ પૂછો.`
-                : lang === 'hi'
-                ? `${exam} परीक्षा के बारे में कुछ भी पूछें।`
-                : `Ask me anything about ${exam} exam preparation.`}
-            </p>
-            <div className="space-y-2 w-full max-w-sm">
-              {suggestions.map((s, i) => (
-                <button
-                  key={i}
-                  onClick={() => { setInput(s); inputRef.current?.focus() }}
-                  className="w-full text-left px-4 py-3 bg-white dark:bg-[#1a1a1a] hover:bg-gray-50 dark:hover:bg-[#262626] text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 text-sm rounded-xl transition-all border border-gray-100 dark:border-gray-800 hover:border-orange-200 dark:hover:border-orange-800 hover:shadow-sm"
-                >
-                  <span className="text-orange-500 mr-2">→</span>{s}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+      {/* Messages area */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 0' }}>
+        <div style={{ maxWidth: '768px', margin: '0 auto', padding: '0 24px' }}>
 
-        {messages.map((m, i) => (
-          <div key={i} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-slide-up`}>
-            {m.role === 'model' && (
-              <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center text-white text-xs font-black shrink-0 mt-0.5 shadow-sm">
-                P
-              </div>
-            )}
-              <div className={`max-w-[78%] ${m.role === 'user' ? 'flex flex-col items-end' : ''}`}>
-                <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-                  m.role === 'user'
-                    ? 'bg-orange-600 text-white rounded-tr-sm shadow-sm'
-                    : m.error
-                    ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-tl-sm border border-red-100 dark:border-red-800'
-                    : 'bg-white dark:bg-[#1a1a1a] text-gray-800 dark:text-gray-200 rounded-tl-sm shadow-sm border border-gray-100 dark:border-gray-800'
-                }`}>
-                <span dangerouslySetInnerHTML={{
-                  __html: m.content
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\n/g, '<br/>')
-                }} />
-              </div>
-              {/* Message actions for AI responses */}
-              {m.role === 'model' && !m.error && (
-                <div className="flex items-center gap-2 mt-1.5 ml-1">
+          {/* Empty state */}
+          {messages.length === 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', animation: 'fadeIn 0.3s ease' }}>
+              <SparkleIcon size={48} />
+              <h2 style={{ fontSize: '28px', fontWeight: '600', color: '#e3e3e3', margin: '16px 0 8px', textAlign: 'center' }}>
+                {lang === 'gu' ? 'હેલો! ✨' : lang === 'hi' ? 'नमस्ते! ✨' : 'Hello! ✨'}
+              </h2>
+              <p style={{ color: '#9aa0a6', fontSize: '15px', marginBottom: '32px', textAlign: 'center', maxWidth: '400px', lineHeight: '1.5' }}>
+                {emptyPrompt}
+              </p>
+              {/* Suggestion chips */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center', maxWidth: '580px' }}>
+                {suggestions.map((s, i) => (
                   <button
-                    onClick={() => copyMessage(m.content)}
-                    className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-                    title="Copy message"
+                    key={i}
+                    onClick={() => { setInput(s); textareaRef.current?.focus() }}
+                    style={{
+                      padding: '10px 18px', borderRadius: '100px',
+                      background: '#2a2b2d', border: '1px solid #3c3c3e',
+                      color: '#e3e3e3', fontSize: '13px', fontWeight: '500',
+                      cursor: 'pointer', transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#35363a'}
+                    onMouseLeave={e => e.currentTarget.style.background = '#2a2b2d'}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                    </svg>
+                    {s}
                   </button>
-                  <button
-                    onClick={() => regenerateMessage(i)}
-                    disabled={loading}
-                    className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50"
-                    title="Regenerate response"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/>
-                    </svg>
-                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Messages */}
+          {messages.map((m, i) => (
+            <div key={i} style={{
+              display: 'flex',
+              flexDirection: m.role === 'user' ? 'row-reverse' : 'row',
+              gap: '12px',
+              marginBottom: '20px',
+              animation: 'slideUp 0.2s ease',
+            }}>
+              {/* Avatar */}
+              {m.role === 'model' && (
+                <div style={{ flexShrink: 0, marginTop: '2px' }}>
+                  <SparkleIcon size={28} />
                 </div>
               )}
-            </div>
-            {m.role === 'user' && (
-              <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 text-xs font-bold shrink-0 mt-0.5">
-                {sessionStorage.getItem('userInitial') || 'U'}
-              </div>
-            )}
-          </div>
-        ))}
 
-        {loading && messages.filter(m => m.role === 'model').length === messages.filter(m => m.role === 'user').length && (
-          <div className="flex gap-3 justify-start animate-fade-in">
-            <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center text-white text-xs font-black shrink-0 shadow-sm">P</div>
-            <div className="bg-white dark:bg-[#1a1a1a] px-4 py-3 rounded-2xl rounded-tl-sm shadow-sm border border-gray-100 dark:border-gray-800">
-              <div className="flex gap-1.5 items-center h-5">
-                <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-              </div>
-              {/* Progress bar */}
-              <div className="mt-2 h-0.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden w-24">
-                <div 
-                  className="h-full bg-orange-500 rounded-full transition-all duration-100" 
-                  style={{ width: `${typingProgress}%` }}
-                />
+              <div style={{ maxWidth: m.role === 'user' ? '70%' : '85%' }}>
+                {/* Bubble */}
+                <div style={{
+                  padding: m.role === 'user' ? '12px 16px' : '4px 0',
+                  borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '0',
+                  background: m.role === 'user' ? '#2a2b2d' : 'transparent',
+                  color: m.error ? '#f87171' : '#e3e3e3',
+                  fontSize: '14px', lineHeight: '1.65',
+                }}>
+                  {m.role === 'model' ? (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        p: ({children}) => <p style={{ margin: '0 0 8px', color: '#e3e3e3' }}>{children}</p>,
+                        strong: ({children}) => <strong style={{ color: '#fff', fontWeight: '600' }}>{children}</strong>,
+                        code: ({children, className}) => className
+                          ? <pre style={{ background: '#2a2b2d', padding: '12px', borderRadius: '8px', overflowX: 'auto', margin: '8px 0', fontSize: '13px' }}><code style={{ color: '#8ab4f8' }}>{children}</code></pre>
+                          : <code style={{ background: '#2a2b2d', padding: '2px 6px', borderRadius: '4px', color: '#8ab4f8', fontSize: '13px' }}>{children}</code>,
+                        ul: ({children}) => <ul style={{ paddingLeft: '20px', margin: '4px 0' }}>{children}</ul>,
+                        ol: ({children}) => <ol style={{ paddingLeft: '20px', margin: '4px 0' }}>{children}</ol>,
+                        li: ({children}) => <li style={{ color: '#e3e3e3', marginBottom: '4px' }}>{children}</li>,
+                        h1: ({children}) => <h1 style={{ color: '#fff', fontSize: '18px', fontWeight: '700', margin: '12px 0 6px' }}>{children}</h1>,
+                        h2: ({children}) => <h2 style={{ color: '#fff', fontSize: '16px', fontWeight: '600', margin: '10px 0 4px' }}>{children}</h2>,
+                        h3: ({children}) => <h3 style={{ color: '#e3e3e3', fontSize: '14px', fontWeight: '600', margin: '8px 0 4px' }}>{children}</h3>,
+                      }}
+                    >
+                      {m.content}
+                    </ReactMarkdown>
+                  ) : m.content}
+                </div>
+
+                {/* AI action row */}
+                {m.role === 'model' && !m.error && (
+                  <div style={{ display: 'flex', gap: '4px', marginTop: '8px' }}>
+                    {[
+                      { icon: <IconCopy />, label: copiedIdx === i ? 'Copied!' : 'Copy', action: () => copyMsg(m.content, i) },
+                      { icon: <IconVol />, label: 'Read aloud', action: () => speak(m.content) },
+                    ].map((btn, bi) => (
+                      <button key={bi} onClick={btn.action}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '4px',
+                          padding: '5px 10px', borderRadius: '100px',
+                          background: 'transparent', border: 'none',
+                          color: '#9aa0a6', fontSize: '12px', cursor: 'pointer',
+                          transition: 'background 0.15s, color 0.15s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = '#35363a'; e.currentTarget.style.color = '#e3e3e3' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9aa0a6' }}
+                      >
+                        {btn.icon}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        )}
-        <div ref={bottomRef} />
+          ))}
+
+          {/* Typing indicator */}
+          {loading && (
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', animation: 'fadeIn 0.2s ease' }}>
+              <SparkleIcon size={28} />
+              <div style={{ paddingTop: '4px' }}><ThinkingDots /></div>
+            </div>
+          )}
+
+          <div ref={bottomRef} />
+        </div>
       </div>
 
-      {/* Input */}
-      <div className="px-4 md:px-6 py-4">
-        <div className="flex gap-2 items-end bg-white dark:bg-[#1a1a1a] rounded-2xl px-4 py-3 shadow-sm border border-gray-100 dark:border-gray-800">
-          <button
-            onClick={voiceInput}
-            className={`shrink-0 w-9 h-9 flex items-center justify-center rounded-xl text-sm transition-all ${
-              listening ? 'bg-red-50 dark:bg-red-900/20 text-red-500 animate-pulse' : 'text-gray-400 dark:text-gray-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20'
-            }`}
-            title="Voice input"
+      {/* Input area - Gemini style */}
+      <div style={{ padding: '16px 24px 20px', flexShrink: 0 }}>
+        <div style={{ maxWidth: '768px', margin: '0 auto' }}>
+          <div style={{
+            background: '#2a2b2d',
+            borderRadius: '24px',
+            border: '1px solid #3c3c3e',
+            transition: 'border-color 0.2s, box-shadow 0.2s',
+            overflow: 'hidden',
+          }}
+            onFocusCapture={e => { e.currentTarget.style.borderColor = '#8ab4f8'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(138,180,248,0.12)' }}
+            onBlurCapture={e => { e.currentTarget.style.borderColor = '#3c3c3e'; e.currentTarget.style.boxShadow = 'none' }}
           >
-            🎤︎︎
-          </button>
-          <textarea
-            ref={el => { inputRef.current = el; textareaRef.current = el }}
-            className="flex-1 bg-transparent text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 dark:placeholder-gray-600 resize-none focus:outline-none max-h-32 min-h-[24px] py-2"
-            placeholder={lang === 'gu' ? 'સવાલ લખો...' : lang === 'hi' ? 'सवाल लिखें...' : 'Ask a question...'}
-            value={input}
-            rows={1}
-            onChange={e => {
-              setInput(e.target.value)
-              e.target.style.height = 'auto'
-              e.target.style.height = Math.min(e.target.scrollHeight, 128) + 'px'
-            }}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
-            }}
-          />
-          <button
-            onClick={send}
-            disabled={!input.trim() || loading}
-            className="shrink-0 w-9 h-9 bg-orange-600 hover:bg-orange-700 disabled:opacity-30 disabled:cursor-not-allowed rounded-xl flex items-center justify-center transition-all text-white text-sm font-bold shadow-sm hover:shadow-md"
-            title="Send message"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
-            </svg>
-          </button>
+            {/* Textarea */}
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={e => {
+                setInput(e.target.value)
+                e.target.style.height = 'auto'
+                e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px'
+              }}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
+              placeholder={lang === 'gu' ? 'ParikshAI ને સવાલ પૂછો...' : lang === 'hi' ? 'ParikshAI से पूछें...' : `Ask ${exam} AI Tutor...`}
+              rows={1}
+              style={{
+                width: '100%', padding: '16px 20px 8px',
+                background: 'transparent', border: 'none', outline: 'none', resize: 'none',
+                color: '#e3e3e3', fontSize: '14px', lineHeight: '1.6',
+                fontFamily: 'inherit',
+                maxHeight: '160px',
+                boxSizing: 'border-box',
+              }}
+            />
+            {/* Bottom toolbar */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 12px 10px' }}>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <button
+                  onClick={voiceInput}
+                  style={{
+                    width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: listening ? 'rgba(239,68,68,0.15)' : 'transparent', border: 'none',
+                    color: listening ? '#f87171' : '#9aa0a6', cursor: 'pointer', transition: 'all 0.15s',
+                  }}
+                  title="Voice input"
+                  onMouseEnter={e => { if (!listening) { e.currentTarget.style.background = '#35363a'; e.currentTarget.style.color = '#e3e3e3' } }}
+                  onMouseLeave={e => { if (!listening) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9aa0a6' } }}
+                >
+                  <IconMic />
+                </button>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '11px', color: '#5f6368' }}>Shift+Enter for new line</span>
+                <button
+                  onClick={send}
+                  disabled={!input.trim() || loading}
+                  style={{
+                    width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: input.trim() && !loading ? '#8ab4f8' : '#3c3c3e',
+                    border: 'none', cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
+                    color: input.trim() && !loading ? '#1e1f20' : '#5f6368',
+                    transition: 'background 0.15s, color 0.15s',
+                  }}
+                  title="Send"
+                >
+                  <IconSend />
+                </button>
+              </div>
+            </div>
+          </div>
+          <p style={{ textAlign: 'center', fontSize: '11px', color: '#5f6368', marginTop: '8px' }}>
+            ParikshAI may make mistakes. Verify important info.
+          </p>
         </div>
-        <p className="text-center text-[10px] text-gray-400 dark:text-gray-600 mt-2">
-          Press Enter to send · Shift+Enter for new line
-        </p>
       </div>
     </div>
   )

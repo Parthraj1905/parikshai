@@ -1,34 +1,31 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
+function SparkleIcon({ size = 48 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <defs>
+        <linearGradient id="lg1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#8ab4f8"/>
+          <stop offset="50%" stopColor="#c084fc"/>
+          <stop offset="100%" stopColor="#f472b6"/>
+        </linearGradient>
+      </defs>
+      <path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z" fill="url(#lg1)"/>
+    </svg>
+  )
+}
+
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSignup, setIsSignup] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [passwordStrength, setPasswordStrength] = useState(0)
 
   useEffect(() => {
-    // Store user initial for chat avatar
-    if (email) {
-      sessionStorage.setItem('userInitial', email.charAt(0).toUpperCase())
-    }
+    if (email) sessionStorage.setItem('userInitial', email.charAt(0).toUpperCase())
   }, [email])
-
-  useEffect(() => {
-    // Calculate password strength
-    if (isSignup && password) {
-      let strength = 0
-      if (password.length >= 6) strength += 25
-      if (password.length >= 8) strength += 25
-      if (/[A-Z]/.test(password)) strength += 25
-      if (/[0-9]/.test(password)) strength += 25
-      setPasswordStrength(strength)
-    } else {
-      setPasswordStrength(0)
-    }
-  }, [password, isSignup])
 
   async function handleSubmit() {
     setError('')
@@ -43,86 +40,79 @@ export default function Login() {
     setLoading(false)
   }
 
-  const getStrengthColor = () => {
-    if (passwordStrength <= 25) return 'bg-red-500'
-    if (passwordStrength <= 50) return 'bg-orange-500'
-    if (passwordStrength <= 75) return 'bg-yellow-500'
-    return 'bg-green-500'
-  }
-
-  const getStrengthLabel = () => {
-    if (passwordStrength <= 25) return 'Weak'
-    if (passwordStrength <= 50) return 'Fair'
-    if (passwordStrength <= 75) return 'Good'
-    return 'Strong'
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-gray-50 to-orange-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
+    <div style={{
+      minHeight: '100vh', background: '#131314', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: "'Google Sans', 'Segoe UI', sans-serif", padding: '24px',
+    }}>
+      <div style={{ width: '100%', maxWidth: '400px' }}>
         {/* Logo */}
-        <div className="text-center mb-8 animate-fade-in">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl mb-4 shadow-lg shadow-orange-500/20">
-            <span className="text-white font-black text-2xl">P</span>
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+            <SparkleIcon size={56} />
           </div>
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight">ParikshAI</h1>
-          <p className="text-gray-500 mt-1 text-sm">सरकारी परीक्षा AI ट्युटर</p>
+          <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#e3e3e3', margin: '0 0 8px', letterSpacing: '-0.5px' }}>ParikshAI</h1>
+          <p style={{ color: '#9aa0a6', fontSize: '14px', margin: 0 }}>Powered by Gemini · Govt Exam Tutor</p>
         </div>
 
-        {/* Form Card */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 animate-slide-up">
-          <h2 className="text-gray-900 font-bold text-base mb-5">
-            {isSignup ? 'Create your account' : 'Welcome back'}
+        {/* Card */}
+        <div style={{
+          background: '#1e1f20', borderRadius: '16px', padding: '32px',
+          border: '1px solid #3c3c3e',
+        }}>
+          <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#e3e3e3', margin: '0 0 24px' }}>
+            {isSignup ? 'Create account' : 'Sign in'}
           </h2>
 
-          <div className="space-y-3">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Email</label>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#9aa0a6', marginBottom: '8px' }}>Email</label>
               <input
-                className="w-full bg-gray-50 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:bg-white transition-all duration-200"
-                placeholder="you@example.com"
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+                placeholder="you@example.com"
                 autoComplete="email"
+                style={{
+                  width: '100%', padding: '12px 14px', borderRadius: '10px',
+                  background: '#2a2b2d', border: '1px solid #3c3c3e',
+                  color: '#e3e3e3', fontSize: '14px', outline: 'none',
+                  fontFamily: 'inherit', boxSizing: 'border-box',
+                  transition: 'border-color 0.2s',
+                }}
+                onFocus={e => e.target.style.borderColor = '#8ab4f8'}
+                onBlur={e => e.target.style.borderColor = '#3c3c3e'}
               />
             </div>
-            
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Password</label>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#9aa0a6', marginBottom: '8px' }}>Password</label>
               <input
-                className="w-full bg-gray-50 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:bg-white transition-all duration-200"
                 type="password"
-                placeholder="••••••••"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+                placeholder="••••••••"
                 autoComplete={isSignup ? 'new-password' : 'current-password'}
+                style={{
+                  width: '100%', padding: '12px 14px', borderRadius: '10px',
+                  background: '#2a2b2d', border: '1px solid #3c3c3e',
+                  color: '#e3e3e3', fontSize: '14px', outline: 'none',
+                  fontFamily: 'inherit', boxSizing: 'border-box',
+                  transition: 'border-color 0.2s',
+                }}
+                onFocus={e => e.target.style.borderColor = '#8ab4f8'}
+                onBlur={e => e.target.style.borderColor = '#3c3c3e'}
               />
-              
-              {/* Password strength indicator */}
-              {isSignup && password && (
-                <div className="mt-2">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full ${getStrengthColor()} rounded-full transition-all duration-300`}
-                        style={{ width: `${passwordStrength}%` }}
-                      />
-                    </div>
-                    <span className="text-[10px] text-gray-400 ml-2">{getStrengthLabel()}</span>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
           {error && (
-            <div className="mt-4 bg-red-50 text-red-600 rounded-xl px-4 py-3 text-xs flex items-center gap-2 animate-slide-up">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
-              </svg>
+            <div style={{
+              marginTop: '16px', padding: '10px 14px', borderRadius: '10px',
+              background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)',
+              color: '#f87171', fontSize: '13px',
+            }}>
               {error}
             </div>
           )}
@@ -130,32 +120,38 @@ export default function Login() {
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="w-full mt-5 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white py-3.5 rounded-xl font-bold text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md hover:shadow-orange-500/20 flex items-center justify-center gap-2"
+            style={{
+              width: '100%', marginTop: '24px', padding: '13px',
+              borderRadius: '100px', border: 'none',
+              background: loading ? '#3c3c3e' : 'linear-gradient(135deg, #8ab4f8 0%, #c084fc 100%)',
+              color: loading ? '#9aa0a6' : '#131314',
+              fontSize: '14px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit', transition: 'opacity 0.15s',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+            }}
           >
             {loading ? (
               <>
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>Processing...</span>
+                <div style={{ width: '16px', height: '16px', border: '2px solid #5f6368', borderTopColor: '#9aa0a6', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                Please wait...
               </>
-            ) : (
-              <span>{isSignup ? 'Create account' : 'Sign in'}</span>
-            )}
+            ) : (isSignup ? 'Create account' : 'Sign in')}
           </button>
 
-          <div className="mt-4 text-center">
-            <p
-              className="text-xs text-gray-400 cursor-pointer hover:text-gray-600 transition-colors"
-              onClick={() => { setIsSignup(!isSignup); setError('') }}
-            >
-              {isSignup ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
-            </p>
-          </div>
+          <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: '#9aa0a6', cursor: 'pointer' }}
+            onClick={() => { setIsSignup(!isSignup); setError('') }}>
+            {isSignup ? 'Already have an account? ' : "Don't have an account? "}
+            <span style={{ color: '#8ab4f8', fontWeight: '500' }}>{isSignup ? 'Sign in' : 'Sign up'}</span>
+          </p>
         </div>
 
-        {/* Footer */}
-        <p className="text-center text-[10px] text-gray-400 mt-6">
+        <p style={{ textAlign: 'center', marginTop: '24px', fontSize: '12px', color: '#5f6368' }}>
           Powered by Google Gemini AI
         </p>
+
+        <style>{`
+          @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        `}</style>
       </div>
     </div>
   )
