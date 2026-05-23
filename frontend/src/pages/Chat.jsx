@@ -40,7 +40,7 @@ const IconSend = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="non
 const IconAdd = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
 const IconVol = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
 
-export default function Chat({ exam, lang }) {
+export default function Chat({ exam, lang, onOpenSidebar, menuIcon }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -114,14 +114,17 @@ export default function Chat({ exam, lang }) {
       {/* Topbar */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 20px', height: '56px',
+        padding: '0 12px', height: '56px',
         borderBottom: '1px solid #3c3c3e',
         flexShrink: 0,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+          <button onClick={onOpenSidebar} className="md:hidden text-[#e3e3e3] p-1" style={{ flexShrink: 0 }}>
+            {menuIcon}
+          </button>
           <SparkleIcon size={20} />
-          <span style={{ fontSize: '16px', fontWeight: '600', color: '#e3e3e3' }}>{exam} AI Tutor</span>
-          <span style={{ fontSize: '12px', color: '#5f6368', background: '#2a2b2d', padding: '3px 10px', borderRadius: '100px', border: '1px solid #3c3c3e' }}>
+          <span style={{ fontSize: '16px', fontWeight: '600', color: '#e3e3e3', whiteSpace: 'nowrap' }}>{exam} AI Tutor</span>
+          <span className="hidden sm:inline-flex" style={{ fontSize: '12px', color: '#5f6368', background: '#2a2b2d', padding: '3px 10px', borderRadius: '100px', border: '1px solid #3c3c3e', whiteSpace: 'nowrap' }}>
             {langLabel} · Gemini
           </span>
         </div>

@@ -94,6 +94,7 @@ export default function AppShell({ session }) {
   ]
 
   const isActive = (path) => path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
+  const isChatRoute = location.pathname === '/'
 
   const userEmail = session?.user?.email || ''
   const userInitial = userEmail?.[0]?.toUpperCase() || 'U'
@@ -255,18 +256,20 @@ export default function AppShell({ session }) {
       </div>
 
       {/* Main content */}
-      <main className=""
+      <main className={`${isChatRoute ? '' : 'pt-[53px]'} md:pt-0`}
       style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#1e1f20' }}>
         {/* Mobile Header */}
-        <div className="md:hidden flex items-center gap-3 p-3 bg-[#1e1f20] border-b border-[#3c3c3e]">
-          <button onClick={openSidebar} className="text-[#e3e3e3] p-1">
-            {Icons.menu}
-          </button>
-          <span className="text-[#e3e3e3] font-bold text-[18px] tracking-tight">ParikshAI</span>
-        </div>
+        {!isChatRoute && (
+          <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center gap-3 p-3 bg-[#1e1f20] border-b border-[#3c3c3e]">
+            <button onClick={openSidebar} className="text-[#e3e3e3] p-1">
+              {Icons.menu}
+            </button>
+            <span className="text-[#e3e3e3] font-bold text-[18px] tracking-tight">ParikshAI</span>
+          </div>
+        )}
 
         <Routes>
-          <Route path="/" element={<Chat exam={exam} lang={lang} />} />
+          <Route path="/" element={<Chat exam={exam} lang={lang} onOpenSidebar={openSidebar} menuIcon={Icons.menu} />} />
           <Route path="/mcq" element={<MCQ exam={exam} lang={lang} />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/settings" element={<Settings />} />
