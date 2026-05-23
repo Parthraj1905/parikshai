@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../lib/ToastContext'
+import { listChats } from '../lib/api'
 import Chat from './Chat'
 import MCQ from './MCQ'
 import Dashboard from './Dashboard'
@@ -49,7 +50,9 @@ export default function AppShell({ session }) {
   const [lang, setLang] = useState('gu')
   const [showExamMenu, setShowExamMenu] = useState(false)
   const [showLangMenu, setShowLangMenu] = useState(false)
-  const [chatHistory] = useState([])
+  const [chatHistory, setChatHistory] = useState([])
+  const [activeChatId, setActiveChatId] = useState(null)
+  const [loadingChats, setLoadingChats] = useState(false)
   const sidebarRef = useRef(null)
   const navigate = useNavigate()
   const location = useLocation()
@@ -86,6 +89,21 @@ export default function AppShell({ session }) {
     requestAnimationFrame(() => setSidebarOpen(true))
   }
 
+  async function refreshChats() {
+    setLoadingChats(true)
+    try {
+      setChatHistory(await listChats())
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Could not load saved chats')
+    } finally {
+      setLoadingChats(false)
+    }
+  }
+
+  useEffect(() => {
+    refreshChats()
+  }, [])
+
   const navItems = [
     { path: '/', label: 'Chat', icon: Icons.chat },
     { path: '/mcq', label: 'MCQ Practice', icon: Icons.mcq },
@@ -95,6 +113,51 @@ export default function AppShell({ session }) {
 
   const isActive = (path) => path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
   const isChatRoute = location.pathname === '/'
+  const selectedChatId = new URLSearchParams(location.search).get('chat')
+
+  useEffect(() => {
+    setActiveChatId(selectedChatId)
+  }, [selectedChatId])
+
+  function startNewChat() {
+    setActiveChatId(null)
+    navigate('/')
+    if (window.matchMedia('(max-width: 767px)').matches) setSidebarOpen(false)
+  }
+
+  function selectChat(chat) {
+    setActiveChatId(chat.id)
+    setExam(chat.exam)
+    setLang(chat.language)
+    navigate(`/?chat=${chat.id}`)
+    if (window.matchMedia('(max-width: 767px)').matches) setSidebarOpen(false)
+  }
+
+  function changeExam(nextExam) {
+    setExam(nextExam)
+    setActiveChatId(null)
+    navigate('/')
+  }
+
+  function changeLang(nextLang) {
+    setLang(nextLang)
+    setActiveChatId(null)
+    navigate('/')
+  }
+
+  function handleChatSaved(sessionId) {
+    if (sessionId && sessionId !== activeChatId) {
+      setActiveChatId(sessionId)
+      navigate(`/?chat=${sessionId}`, { replace: true })
+    }
+    refreshChats()
+  }
+
+  function handleChatLoaded(chat) {
+    if (!chat) return
+    setExam(chat.exam)
+    setLang(chat.language)
+  }
 
   const userEmail = session?.user?.email || ''
   const userInitial = userEmail?.[0]?.toUpperCase() || 'U'
@@ -138,7 +201,7 @@ export default function AppShell({ session }) {
 
           {/* New Chat button */}
           <button
-            onClick={() => navigate('/')}
+            onClick={startNewChat}
             style={{
               display: 'flex', alignItems: 'center', gap: '10px',
               padding: sidebarOpen ? '10px 14px' : '10px',
@@ -166,7 +229,7 @@ export default function AppShell({ session }) {
             <p style={{ fontSize: '11px', fontWeight: '600', color: '#5f6368', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>Exam</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginBottom: '10px' }}>
               {EXAMS.map(e => (
-                <button key={e} onClick={() => setExam(e)} style={{
+                <button key={e} onClick={() => changeExam(e)} style={{
                   padding: '6px 10px', borderRadius: '100px', fontSize: '12px', fontWeight: '600',
                   cursor: 'pointer', transition: 'all 0.15s', border: 'none',
                   background: exam === e ? 'rgba(138,180,248,0.15)' : 'transparent',
@@ -180,7 +243,7 @@ export default function AppShell({ session }) {
             <p style={{ fontSize: '11px', fontWeight: '600', color: '#5f6368', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>Language</p>
             <div style={{ display: 'flex', gap: '4px' }}>
               {LANGS.map(l => (
-                <button key={l.code} onClick={() => setLang(l.code)} title={l.full} style={{
+                <button key={l.code} onClick={() => changeLang(l.code)} title={l.full} style={{
                   flex: 1, padding: '6px 0', borderRadius: '100px', fontSize: '12px', fontWeight: '600',
                   cursor: 'pointer', transition: 'all 0.15s', border: 'none',
                   background: lang === l.code ? 'rgba(138,180,248,0.15)' : 'transparent',
@@ -226,6 +289,46 @@ export default function AppShell({ session }) {
               {sidebarOpen && <span>{item.label}</span>}
             </button>
           ))}
+
+          {sidebarOpen && (
+            <>
+              <p style={{ fontSize: '11px', fontWeight: '600', color: '#5f6368', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '14px 8px 4px' }}>Saved chats</p>
+              {loadingChats && (
+                <p style={{ color: '#5f6368', fontSize: '12px', padding: '6px 12px' }}>Loading...</p>
+              )}
+              {!loadingChats && chatHistory.length === 0 && (
+                <p style={{ color: '#5f6368', fontSize: '12px', padding: '6px 12px', lineHeight: '1.4' }}>No saved chats yet</p>
+              )}
+              {!loadingChats && chatHistory.map(chat => (
+                <button
+                  key={chat.id}
+                  onClick={() => selectChat(chat)}
+                  title={chat.title}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '9px 12px',
+                    borderRadius: '100px',
+                    cursor: 'pointer',
+                    background: activeChatId === chat.id ? '#35363a' : 'transparent',
+                    color: activeChatId === chat.id ? '#e3e3e3' : '#9aa0a6',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    border: 'none',
+                    transition: 'background 0.15s',
+                    width: '100%',
+                    textAlign: 'left',
+                  }}
+                  onMouseEnter={e => { if (activeChatId !== chat.id) e.currentTarget.style.background = '#35363a' }}
+                  onMouseLeave={e => { if (activeChatId !== chat.id) e.currentTarget.style.background = 'transparent' }}
+                >
+                  <span style={{ flexShrink: 0 }}>{Icons.chat}</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span>
+                </button>
+              ))}
+            </>
+          )}
         </div>
 
         {/* Bottom: theme + user */}
@@ -269,7 +372,7 @@ export default function AppShell({ session }) {
         )}
 
         <Routes>
-          <Route path="/" element={<Chat exam={exam} lang={lang} onOpenSidebar={openSidebar} menuIcon={Icons.menu} />} />
+          <Route path="/" element={<Chat exam={exam} lang={lang} activeChatId={activeChatId} onChatLoaded={handleChatLoaded} onChatSaved={handleChatSaved} onStartNewChat={startNewChat} onOpenSidebar={openSidebar} menuIcon={Icons.menu} />} />
           <Route path="/mcq" element={<MCQ exam={exam} lang={lang} />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/settings" element={<Settings />} />

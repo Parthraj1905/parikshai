@@ -3,33 +3,68 @@ import { supabase } from './supabase'
 
 const BASE = import.meta.env.VITE_API_URL
 
-export async function sendMessage(exam, language, messages) {
+async function authHeaders() {
   const { data: { session } } = await supabase.auth.getSession()
   const token = session?.access_token
+  return { Authorization: `Bearer ${token}` }
+}
 
+export async function sendMessage(exam, language, messages, sessionId) {
+  const headers = await authHeaders()
   const res = await axios.post(`${BASE}/api/chat`, {
     exam,
     language,
-    messages
-  }, {
-    headers: { Authorization: `Bearer ${token}` }
-  })
-  return res.data.reply
+    messages,
+    session_id: sessionId
+  }, { headers })
+  return res.data
+}
+
+export async function listChats() {
+  const headers = await authHeaders()
+  const res = await axios.get(`${BASE}/api/chats`, { headers })
+  return res.data.chats
+}
+
+export async function getChat(sessionId) {
+  const headers = await authHeaders()
+  const res = await axios.get(`${BASE}/api/chats/${sessionId}`, { headers })
+  return res.data
+}
+
+export async function createChat(exam, language, title) {
+  const headers = await authHeaders()
+  const res = await axios.post(`${BASE}/api/chats`, {
+    exam,
+    language,
+    title
+  }, { headers })
+  return res.data.chat
+}
+
+export async function updateChat(sessionId, updates) {
+  const headers = await authHeaders()
+  const res = await axios.patch(`${BASE}/api/chats/${sessionId}`, updates, { headers })
+  return res.data.chat
+}
+
+export async function deleteChat(sessionId) {
+  const headers = await authHeaders()
+  const res = await axios.delete(`${BASE}/api/chats/${sessionId}`, { headers })
+  return res.data
 }
 
 export async function getProgress() {
-  const { data: { session } } = await supabase.auth.getSession()
-  const token = session?.access_token
+  const headers = await authHeaders()
 
   const res = await axios.get(`${BASE}/api/progress`, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers
   })
   return res.data
 }
 
 export async function generateMCQ(exam, language, topic, count = 1) {
-  const { data: { session } } = await supabase.auth.getSession()
-  const token = session?.access_token
+  const headers = await authHeaders()
 
   const res = await axios.post(`${BASE}/api/mcq/generate`, {
     exam,
@@ -37,14 +72,14 @@ export async function generateMCQ(exam, language, topic, count = 1) {
     topic,
     count
   }, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers
   })
   return res.data
 }
 
 export async function submitMCQ({ questionId, selectedAnswer, correctAnswer, exam, topic }) {
   const { data: { session } } = await supabase.auth.getSession()
-  const token = session?.access_token
+  const headers = await authHeaders()
 
   const res = await axios.post(`${BASE}/api/mcq/submit`, {
     user_id: session?.user?.id,
@@ -54,7 +89,7 @@ export async function submitMCQ({ questionId, selectedAnswer, correctAnswer, exa
     exam,
     topic
   }, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers
   })
   return res.data
 }

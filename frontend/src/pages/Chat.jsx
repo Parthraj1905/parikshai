@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { sendMessage } from '../lib/api'
+import { getChat, sendMessage } from '../lib/api'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -40,10 +40,11 @@ const IconSend = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="non
 const IconAdd = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
 const IconVol = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
 
-export default function Chat({ exam, lang, onOpenSidebar, menuIcon }) {
+export default function Chat({ exam, lang, activeChatId, onChatLoaded, onChatSaved, onStartNewChat, onOpenSidebar, menuIcon }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [loadingChat, setLoadingChat] = useState(false)
   const [listening, setListening] = useState(false)
   const [copiedIdx, setCopiedIdx] = useState(null)
   const bottomRef = useRef()
@@ -53,7 +54,35 @@ export default function Chat({ exam, lang, onOpenSidebar, menuIcon }) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
-  useEffect(() => { setMessages([]) }, [exam, lang])
+  useEffect(() => {
+    if (!activeChatId) setMessages([])
+  }, [exam, lang, activeChatId])
+
+  useEffect(() => {
+    if (!activeChatId) return
+
+    let alive = true
+    async function loadSavedChat() {
+      setLoadingChat(true)
+      try {
+        const data = await getChat(activeChatId)
+        if (!alive) return
+        onChatLoaded?.(data.chat)
+        setMessages((data.messages || []).map(m => ({
+          role: m.role,
+          content: m.content,
+        })))
+      } catch (e) {
+        if (!alive) return
+        setMessages([{ role: 'model', content: e.response?.data?.detail || 'Could not load this chat.', error: true }])
+      } finally {
+        if (alive) setLoadingChat(false)
+      }
+    }
+
+    loadSavedChat()
+    return () => { alive = false }
+  }, [activeChatId])
 
   async function send() {
     if (!input.trim() || loading) return
@@ -64,8 +93,9 @@ export default function Chat({ exam, lang, onOpenSidebar, menuIcon }) {
     if (textareaRef.current) { textareaRef.current.style.height = 'auto' }
     setLoading(true)
     try {
-      const reply = await sendMessage(exam, lang, newMessages)
-      setMessages(prev => [...prev, { role: 'model', content: reply }])
+      const data = await sendMessage(exam, lang, newMessages, activeChatId)
+      setMessages(prev => [...prev, { role: 'model', content: data.reply }])
+      onChatSaved?.(data.session_id)
     } catch (e) {
       setMessages(prev => [...prev, { role: 'model', content: e.response?.data?.detail || 'Something went wrong. Please try again.', error: true }])
     }
@@ -129,7 +159,7 @@ export default function Chat({ exam, lang, onOpenSidebar, menuIcon }) {
           </span>
         </div>
         <button
-          onClick={() => { setMessages([]); speechSynthesis.cancel() }}
+          onClick={() => { setMessages([]); speechSynthesis.cancel(); onStartNewChat?.() }}
           style={{ fontSize: '13px', color: '#9aa0a6', background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px 12px', borderRadius: '100px' }}
           onMouseEnter={e => { e.currentTarget.style.background = '#35363a'; e.currentTarget.style.color = '#e3e3e3' }}
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9aa0a6' }}
@@ -143,7 +173,13 @@ export default function Chat({ exam, lang, onOpenSidebar, menuIcon }) {
         <div style={{ maxWidth: '768px', margin: '0 auto', padding: '0 24px' }}>
 
           {/* Empty state */}
-          {messages.length === 0 && (
+          {loadingChat && (
+            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '20vh' }}>
+              <ThinkingDots />
+            </div>
+          )}
+
+          {!loadingChat && messages.length === 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', animation: 'fadeIn 0.3s ease' }}>
               <SparkleIcon size={48} />
               <h2 style={{ fontSize: '28px', fontWeight: '600', color: '#e3e3e3', margin: '16px 0 8px', textAlign: 'center' }}>
@@ -175,7 +211,7 @@ export default function Chat({ exam, lang, onOpenSidebar, menuIcon }) {
           )}
 
           {/* Messages */}
-          {messages.map((m, i) => (
+          {!loadingChat && messages.map((m, i) => (
             <div key={i} style={{
               display: 'flex',
               flexDirection: m.role === 'user' ? 'row-reverse' : 'row',
