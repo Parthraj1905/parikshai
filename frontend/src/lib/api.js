@@ -20,6 +20,24 @@ export async function sendMessage(exam, language, messages, sessionId) {
   return res.data
 }
 
+export async function getPlan() {
+  const headers = await authHeaders()
+  const res = await axios.get(`${BASE}/api/me/plan`, { headers })
+  return res.data
+}
+
+export async function createProSubscription() {
+  const headers = await authHeaders()
+  const res = await axios.post(`${BASE}/api/billing/subscription`, {}, { headers })
+  return res.data
+}
+
+export async function verifyProSubscription(payload) {
+  const headers = await authHeaders()
+  const res = await axios.post(`${BASE}/api/billing/verify`, payload, { headers })
+  return res.data
+}
+
 export async function listChats() {
   const headers = await authHeaders()
   const res = await axios.get(`${BASE}/api/chats`, { headers })

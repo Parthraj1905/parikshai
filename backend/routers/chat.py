@@ -12,7 +12,7 @@ from services.chat_store import (
     make_title,
     validate_message_content,
 )
-from services.supabase_client import supabase
+from services.plans import consume_quota, is_pro
 
 router = APIRouter()
 
@@ -30,34 +30,22 @@ async def chat(req: ChatRequest, authorization: str = Header(...)):
 
     latest_message = req.messages[-1] or {}
     user_message = validate_message_content(latest_message.get("content", ""))
-    
-    # Check daily limit for free users
-    profile = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
-    p = profile.data
-    
-    from datetime import date
-    today = str(date.today())
-    
-    if not p["is_premium"]:
-        if p["last_reset_date"] != today:
-            supabase.table("profiles").update({
-                "questions_used_today": 0,
-                "last_reset_date": today
-            }).eq("id", user_id).execute()
-            p["questions_used_today"] = 0
-        
-        if p["questions_used_today"] >= 20:
-            raise HTTPException(status_code=429, detail="Daily limit reached. Upgrade to premium.")
-    
-    if req.session_id:
+
+    profile = consume_quota(user_id, "chat")
+    should_save = is_pro(profile)
+
+    if req.session_id and should_save:
         session = get_session(user_id, req.session_id)
         session_id = session["id"]
         ensure_message_room(user_id, session_id, incoming_count=2)
-    else:
+    elif should_save:
         session = create_session(user_id, req.exam, req.language, make_title(user_message))
         session_id = session["id"]
+    else:
+        session_id = None
 
-    append_message(user_id, session_id, "user", user_message)
+    if should_save:
+        append_message(user_id, session_id, "user", user_message)
 
     try:
         ai_reply = await get_ai_response(req.exam, req.language, req.messages)
@@ -71,14 +59,11 @@ async def chat(req: ChatRequest, authorization: str = Header(...)):
             headers=headers or None,
         ) from exc
 
-    saved_reply = append_message(user_id, session_id, "model", ai_reply)
-    
-    # Increment counter
-    supabase.table("profiles").update({
-        "questions_used_today": p["questions_used_today"] + 1
-    }).eq("id", user_id).execute()
+    if should_save:
+        saved_reply = append_message(user_id, session_id, "model", ai_reply)
+        ai_reply = saved_reply["content"]
     
     return {
-        "reply": saved_reply["content"],
+        "reply": ai_reply,
         "session_id": session_id,
     }

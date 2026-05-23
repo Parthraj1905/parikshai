@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import chat, chats, mcq, progress
+from routers import billing, chat, chats, mcq, progress
 
 app = FastAPI(title="ParikshAI Backend")
 
@@ -20,6 +20,7 @@ app.include_router(chat.router, prefix="/api")
 app.include_router(chats.router, prefix="/api")
 app.include_router(mcq.router, prefix="/api")
 app.include_router(progress.router, prefix="/api")
+app.include_router(billing.router, prefix="/api")
 
 @app.get("/")
 def root():

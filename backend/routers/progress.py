@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Header, HTTPException
+from services.plans import require_pro
 from services.supabase_client import supabase
 
 router = APIRouter()
@@ -16,6 +17,7 @@ async def get_progress(authorization: str = Header(...)):
         raise HTTPException(status_code=401, detail="Unauthorized")
     
     user_id = user.user.id
+    require_pro(user_id, "Progress dashboard")
     
     progress = supabase.table("user_progress").select("id,is_correct,question_id").eq("user_id", user_id).execute()
     weak = supabase.table("weak_topics").select("*").eq("user_id", user_id).order("wrong_count", desc=True).execute()

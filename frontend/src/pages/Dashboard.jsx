@@ -5,9 +5,20 @@ import { getProgress } from '../lib/api'
 export default function Dashboard() {
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
+  const [locked, setLocked] = useState(false)
   const navigate = useNavigate()
 
-  useEffect(() => { getProgress().then(setData).catch(() => setError('Could not load progress.')) }, [])
+  useEffect(() => {
+    getProgress()
+      .then(setData)
+      .catch(error => {
+        if (error.response?.status === 402) {
+          setLocked(true)
+          return
+        }
+        setError('Could not load progress.')
+      })
+  }, [])
 
   const wrong = data?.wrong || 0
   const total = data?.total_answered || 0
@@ -31,13 +42,33 @@ export default function Dashboard() {
           </div>
         )}
 
-        {!data && !error && (
+        {locked && (
+          <div style={{ background: '#2a2b2d', border: '1px solid #3c3c3e', borderRadius: '16px', padding: '28px', textAlign: 'center' }}>
+            <h3 style={{ color: '#e3e3e3', fontSize: '18px', fontWeight: '700', margin: '0 0 8px' }}>Progress is a Pro feature</h3>
+            <p style={{ color: '#9aa0a6', fontSize: '14px', lineHeight: '1.55', margin: '0 0 20px' }}>Upgrade to unlock progress charts, weak topics, recent attempts, and higher daily AI limits.</p>
+            <button onClick={() => navigate('/settings')} style={{
+              padding: '13px 22px',
+              borderRadius: '100px',
+              border: 'none',
+              background: 'linear-gradient(135deg, #8ab4f8 0%, #c084fc 100%)',
+              color: '#131314',
+              fontSize: '14px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}>
+              Upgrade to Pro
+            </button>
+          </div>
+        )}
+
+        {!data && !error && !locked && (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
             <div style={{ width: '32px', height: '32px', border: '2px solid #3c3c3e', borderTopColor: '#8ab4f8', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
           </div>
         )}
 
-        {data && (
+        {data && !locked && (
           <>
             {/* Accuracy */}
             <div style={card()}>

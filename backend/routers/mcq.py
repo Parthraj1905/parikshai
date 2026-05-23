@@ -5,6 +5,7 @@ from fastapi import APIRouter, Header, HTTPException
 from postgrest.exceptions import APIError
 from pydantic import BaseModel
 from services.gemini import GeminiServiceError, generate_mcq, generate_mcqs
+from services.plans import consume_quota
 from services.supabase_client import supabase
 
 router = APIRouter()
@@ -99,7 +100,8 @@ def _increment_weak_topic(user_id: str, exam: str, topic: str) -> None:
 
 @router.post("/mcq/generate")
 async def generate(req: GenerateMCQRequest, authorization: str = Header(...)):
-    _get_user_id(authorization)
+    user_id = _get_user_id(authorization)
+    consume_quota(user_id, "mcq")
 
     try:
         if req.count > 1:

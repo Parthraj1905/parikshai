@@ -94,7 +94,10 @@ export default function AppShell({ session }) {
     try {
       setChatHistory(await listChats())
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Could not load saved chats')
+      if (error.response?.status !== 402) {
+        toast.error(error.response?.data?.detail || 'Could not load saved chats')
+      }
+      setChatHistory([])
     } finally {
       setLoadingChats(false)
     }
