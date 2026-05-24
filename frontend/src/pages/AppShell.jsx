@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../lib/ToastContext'
@@ -48,10 +48,8 @@ export default function AppShell({ session }) {
   const [sidebarVisible, setSidebarVisible] = useState(true)
   const [exam, setExam] = useState('GPSC')
   const [lang, setLang] = useState('gu')
-  const [showExamMenu, setShowExamMenu] = useState(false)
-  const [showLangMenu, setShowLangMenu] = useState(false)
+
   const [chatHistory, setChatHistory] = useState([])
-  const [activeChatId, setActiveChatId] = useState(null)
   const [loadingChats, setLoadingChats] = useState(false)
   const sidebarRef = useRef(null)
   const navigate = useNavigate()
@@ -89,7 +87,7 @@ export default function AppShell({ session }) {
     requestAnimationFrame(() => setSidebarOpen(true))
   }
 
-  async function refreshChats() {
+  const refreshChats = useCallback(async () => {
     setLoadingChats(true)
     try {
       setChatHistory(await listChats())
@@ -101,11 +99,14 @@ export default function AppShell({ session }) {
     } finally {
       setLoadingChats(false)
     }
-  }
+  }, [toast])
 
   useEffect(() => {
-    refreshChats()
-  }, [])
+    const timer = setTimeout(() => {
+      refreshChats()
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [refreshChats])
 
   useEffect(() => {
     function updateAppHeight() {
@@ -135,20 +136,14 @@ export default function AppShell({ session }) {
 
   const isActive = (path) => path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
   const isChatRoute = location.pathname === '/'
-  const selectedChatId = new URLSearchParams(location.search).get('chat')
-
-  useEffect(() => {
-    setActiveChatId(selectedChatId)
-  }, [selectedChatId])
+  const activeChatId = new URLSearchParams(location.search).get('chat') || null
 
   function startNewChat() {
-    setActiveChatId(null)
     navigate('/')
     if (window.matchMedia('(max-width: 767px)').matches) setSidebarOpen(false)
   }
 
   function selectChat(chat) {
-    setActiveChatId(chat.id)
     setExam(chat.exam)
     setLang(chat.language)
     navigate(`/?chat=${chat.id}`)
@@ -157,19 +152,16 @@ export default function AppShell({ session }) {
 
   function changeExam(nextExam) {
     setExam(nextExam)
-    setActiveChatId(null)
     navigate('/')
   }
 
   function changeLang(nextLang) {
     setLang(nextLang)
-    setActiveChatId(null)
     navigate('/')
   }
 
   function handleChatSaved(sessionId) {
     if (sessionId && sessionId !== activeChatId) {
-      setActiveChatId(sessionId)
       navigate(`/?chat=${sessionId}`, { replace: true })
     }
     refreshChats()

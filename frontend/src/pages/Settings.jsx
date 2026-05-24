@@ -20,22 +20,34 @@ function loadRazorpayScript() {
   })
 }
 
+const Row = ({ label, desc, right }) => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid #3c3c3e' }}>
+    <div>
+      <p style={{ color: '#e3e3e3', fontSize: '14px', fontWeight: '500', margin: '0 0 2px' }}>{label}</p>
+      {desc && <p style={{ color: '#9aa0a6', fontSize: '12px', margin: 0 }}>{desc}</p>}
+    </div>
+    {right}
+  </div>
+)
+
 export default function Settings() {
   const { fontSize, increaseFontSize, decreaseFontSize } = useTheme()
   const toast = useToast()
   const [plan, setPlan] = useState(null)
   const [billingLoading, setBillingLoading] = useState(false)
 
-  async function refreshPlan() {
-    try {
-      setPlan(await getPlan())
-    } catch {
-      setPlan(null)
-    }
-  }
-
   useEffect(() => {
-    refreshPlan()
+    let active = true
+    getPlan()
+      .then(data => {
+        if (active) setPlan(data)
+      })
+      .catch(() => {
+        if (active) setPlan(null)
+      })
+    return () => {
+      active = false
+    }
   }, [])
 
   async function handleLogout() {
@@ -77,15 +89,7 @@ export default function Settings() {
     }
   }
 
-  const Row = ({ label, desc, right }) => (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid #3c3c3e' }}>
-      <div>
-        <p style={{ color: '#e3e3e3', fontSize: '14px', fontWeight: '500', margin: '0 0 2px' }}>{label}</p>
-        {desc && <p style={{ color: '#9aa0a6', fontSize: '12px', margin: 0 }}>{desc}</p>}
-      </div>
-      {right}
-    </div>
-  )
+
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: '#1e1f20', fontFamily: "'Google Sans', sans-serif" }}>

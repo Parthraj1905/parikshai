@@ -26,7 +26,7 @@ export default function Dashboard() {
   const barColor = accuracy >= 80 ? 'linear-gradient(90deg, #4ade80, #22c55e)' : accuracy >= 50 ? 'linear-gradient(90deg, #8ab4f8, #c084fc)' : 'linear-gradient(90deg, #f87171, #ef4444)'
   const badge = accuracy >= 80 ? { emoji: '🏆', label: 'Excellent', color: '#4ade80' } : accuracy >= 50 ? { emoji: '📈', label: 'Good Progress', color: '#8ab4f8' } : { emoji: '💪', label: 'Keep Practicing', color: '#f87171' }
 
-  const card = (children) => ({ background: '#2a2b2d', borderRadius: '16px', padding: '24px', border: '1px solid #3c3c3e', marginBottom: '16px' })
+  const card = () => ({ background: '#2a2b2d', borderRadius: '16px', padding: '24px', border: '1px solid #3c3c3e', marginBottom: '16px' })
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: '#1e1f20', fontFamily: "'Google Sans', sans-serif" }}>
