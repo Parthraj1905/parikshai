@@ -7,7 +7,7 @@ from services.supabase_client import supabase
 
 FREE_LIMITS = {
     "chat": 20,
-    "mcq": 10,
+    "mcq": 1,
 }
 
 PRO_LIMITS = {

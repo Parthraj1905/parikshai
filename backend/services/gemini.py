@@ -46,7 +46,18 @@ EXAM_PROMPTS = {
 - Use numbers (1. 2. 3.) only when user asks for a list or ranking
 - Each numbered item on its own line
 - Never put a list in one sentence""",
+
+    "GENERAL": """You are an expert Government Exam tutor covering UPSC, SSC, GPSC, RRB, State PSC and other competitive exams. Rules:
+- Answer in {language}
+- Keep answers SHORT and DIRECT
+- Only explain in detail if the user asks "explain"
+- For factual questions: just give the fact
+- Talk like a smart friend, not a textbook
+- Use numbers (1. 2. 3.) only when the user asks for a list or ranking
+- Each numbered item on its own line
+- Never put a list in one sentence""",
 }
+
 
 LANG_MAP = {"gu": "Gujarati", "hi": "Hindi", "en": "English"}
 
@@ -342,7 +353,8 @@ async def get_ai_response(exam: str, language: str, messages: list) -> str:
         raise GeminiServiceError("Message content is required.", status_code=400)
 
     lang_name = LANG_MAP.get(language, "Gujarati")
-    system_prompt = EXAM_PROMPTS.get(exam, EXAM_PROMPTS["GPSC"]).format(language=lang_name)
+    system_prompt = EXAM_PROMPTS.get(exam, EXAM_PROMPTS["GENERAL"]).format(language=lang_name)
+
 
     history = []
     for msg in messages[:-1]:
@@ -364,31 +376,61 @@ async def get_ai_response(exam: str, language: str, messages: list) -> str:
 
 
 async def generate_mcqs(exam: str, language: str, topic: Optional[str] = None, count: int = 10) -> list:
+    import random
     count = max(1, min(count, 10))
     lang_name = LANG_MAP.get(language, "Gujarati")
-    topic_name = topic.strip() if topic and topic.strip() else "Random"
-    prompt = f"""Generate {count} unique multiple choice questions for {exam} exam in {lang_name}.
+    topic_name = topic.strip() if topic and topic.strip() else "Random (mix of all topics)"
+
+    # Random seed ensures Gemini won't return the same cached set of questions
+    seed = random.randint(10000, 99999)
+
+    prompt = f"""You are an expert question-setter for Indian Government Competitive Exams (UPSC, SSC, GPSC, RRB, State PSC).
+
+Generate EXACTLY {count} unique multiple-choice questions. Session seed: {seed}.
+
 Topic: {topic_name}
-Return ONLY a valid JSON array, nothing else.
-Each item must have exactly this shape:
+Language: {lang_name}
+Difficulty: Mix of medium and hard questions. Avoid very easy or trivial questions.
+Style: Vary the question types — include factual, application-based, and analytical questions.
+IMPORTANT: Every question MUST be different. Never repeat a question or use obvious/commonly repeated questions.
+
+Return ONLY a valid JSON array with exactly {count} items, nothing else.
+Each item MUST have exactly this shape:
 {{
-  "question": "question text",
-  "options": ["option A", "option B", "option C", "option D"],
-  "correct": "option A",
-  "explanation": "brief explanation in {lang_name}"
+  "question": "Full question text in {lang_name}",
+  "options": ["Option A text", "Option B text", "Option C text", "Option D text"],
+  "correct": "<exact text of correct option>",
+  "explanation": "Clear, brief explanation in {lang_name} (1-2 sentences)"
 }}
-Do not repeat questions. The "correct" value must exactly match one of the options."""
 
-    response_text = await _generate_text(
-        [types.Content(role="user", parts=[types.Part(text=prompt)])],
-        types.GenerateContentConfig(
-            response_mime_type="application/json",
-            temperature=0.7,
-        ),
-    )
+Rules:
+- The "correct" value MUST exactly match one of the 4 option strings (character-for-character)
+- Options must be plausible — wrong options should not be obviously wrong
+- Questions should test real exam knowledge, not common trivia
+- No duplicate questions"""
 
-    return _normalize_mcqs(_json_from_text(response_text), count)
+    max_attempts = 3
+    last_error = None
+    for attempt in range(max_attempts):
+        try:
+            response_text = await _generate_text(
+                [types.Content(role="user", parts=[types.Part(text=prompt)])],
+                types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.95,
+                ),
+            )
+            return _normalize_mcqs(_json_from_text(response_text), count)
+        except GeminiServiceError as exc:
+            # Only retry on parse/validation errors (502), not quota (429) or auth (401/403) errors
+            if exc.status_code != 502 or attempt == max_attempts - 1:
+                raise
+            last_error = exc
+            await asyncio.sleep(0.5)
+
+    raise last_error
 
 
 async def generate_mcq(exam: str, language: str, topic: Optional[str] = None) -> dict:
     return (await generate_mcqs(exam, language, topic, 1))[0]
+
