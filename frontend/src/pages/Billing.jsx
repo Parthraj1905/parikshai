@@ -31,7 +31,7 @@ function SparkleIcon({ size = 20 }) {
 
 const PRO_FEATURES = [
   { icon: '💬', label: '100 AI chat questions/day', free: '20/day' },
-  { icon: '🎯', label: '100 MCQ generations/day (1000 questions)', free: '1 generation/day (10 Qs)' },
+  { icon: '🎯', label: '10 MCQ generations/day (100 questions)', free: '1 generation/day (10 Qs)' },
   { icon: '💾', label: 'Unlimited saved chats', free: 'Not available' },
   { icon: '📊', label: 'Progress dashboard & weak topics', free: 'Not available' },
   { icon: '⚡', label: 'Priority AI responses', free: 'Standard' },

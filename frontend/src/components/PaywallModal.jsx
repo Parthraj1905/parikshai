@@ -45,7 +45,7 @@ export default function PaywallModal({ isOpen, onClose }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ fontSize: '20px' }}>🎯</span>
               <div>
-                <p style={{ color: '#e3e3e3', fontSize: '14px', fontWeight: '600', margin: '0 0 2px' }}>100 MCQ Generations/day (1000 Qs)</p>
+                <p style={{ color: '#e3e3e3', fontSize: '14px', fontWeight: '600', margin: '0 0 2px' }}>10 MCQ Generations/day (100 Qs)</p>
                 <p style={{ color: '#9aa0a6', fontSize: '12px', margin: 0 }}>vs 1 generation/day on Free plan</p>
               </div>
             </div>

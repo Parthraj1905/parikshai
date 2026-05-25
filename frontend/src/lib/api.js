@@ -3,6 +3,17 @@ import { supabase } from './supabase'
 
 const BASE = import.meta.env.VITE_API_URL
 
+/**
+ * Silently ping the backend every 10 minutes to prevent cold starts
+ * on free-tier hosting (Render/Railway which sleep after inactivity).
+ * Call this once on app mount.
+ */
+export function keepAliveBackend() {
+  const ping = () => fetch(`${BASE}/`).catch(() => {}) // silent — never throws
+  ping() // ping immediately on load
+  setInterval(ping, 10 * 60 * 1000) // then every 10 min
+}
+
 async function authHeaders() {
   const { data: { session } } = await supabase.auth.getSession()
   const token = session?.access_token

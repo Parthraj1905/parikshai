@@ -46,7 +46,7 @@ export default function Dashboard() {
           <div style={{ background: '#2a2b2d', border: '1px solid #3c3c3e', borderRadius: '16px', padding: '28px', textAlign: 'center' }}>
             <h3 style={{ color: '#e3e3e3', fontSize: '18px', fontWeight: '700', margin: '0 0 8px' }}>Progress is a Pro feature</h3>
             <p style={{ color: '#9aa0a6', fontSize: '14px', lineHeight: '1.55', margin: '0 0 20px' }}>Upgrade to unlock progress charts, weak topics, recent attempts, and higher daily AI limits.</p>
-            <button onClick={() => navigate('/settings')} style={{
+            <button onClick={() => navigate('/billing')} style={{
               padding: '13px 22px',
               borderRadius: '100px',
               border: 'none',

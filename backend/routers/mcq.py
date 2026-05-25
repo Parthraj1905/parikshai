@@ -135,12 +135,12 @@ async def submit(req: SubmitMCQRequest, authorization: str = Header(...)):
             {"user_id", "is_correct"},
         )
     except APIError as exc:
-        raise HTTPException(status_code=500, detail=f"Could not save progress: {exc}") from exc
+        raise HTTPException(status_code=500, detail=f"Could not save progress: An internal error occurred.") from exc
 
     if not is_correct:
         try:
             _increment_weak_topic(user_id, req.exam, topic)
         except APIError as exc:
-            raise HTTPException(status_code=500, detail=f"Could not update weak topics: {exc}") from exc
+            raise HTTPException(status_code=500, detail=f"Could not update weak topics: An internal error occurred.") from exc
 
     return {"is_correct": is_correct}

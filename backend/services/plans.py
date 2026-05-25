@@ -12,7 +12,7 @@ FREE_LIMITS = {
 
 PRO_LIMITS = {
     "chat": 100,
-    "mcq": 100,
+    "mcq": 10,
 }
 
 PRO_STATUSES = {"active", "authenticated", "charged"}

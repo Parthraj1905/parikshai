@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { getChat, sendMessage } from '../lib/api'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -39,22 +39,49 @@ const IconMic = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none
 const IconSend = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
 const IconVol = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
 
-// Generic suggestion chips for all govt exams
-const SUGGESTIONS = {
+// Large pool — 3 random ones are picked on each new chat render
+const SUGGESTION_POOL = {
   en: [
     'Explain the Indian Constitution briefly',
     'Important topics for GK & Current Affairs',
     'How to improve my MCQ score?',
+    'Differences between Rajya Sabha and Lok Sabha',
+    'What are Fundamental Rights?',
+    'Explain Directive Principles of State Policy',
+    'How does the President of India get elected?',
+    'What is the role of CAG of India?',
+    'Explain Emergency provisions in the Constitution',
+    'Key facts about Indian geography for exams',
+    'Important environmental topics for govt exams',
+    'Explain the Five-Year Plans briefly',
   ],
   hi: [
     'भारतीय संविधान की मुख्य विशेषताएं',
     'सामान्य ज्ञान की तैयारी कैसे करें?',
     'MCQ practice के लिए best topics',
+    'राज्यसभा और लोकसभा में क्या अंतर है?',
+    'मौलिक अधिकार क्या हैं?',
+    'राष्ट्रपति चुनाव कैसे होता है?',
+    'भारत की पंचवर्षीय योजनाएं',
+    'CAG का क्या काम है?',
+    'भारत की नदियां और पहाड़',
+    'आपातकाल का संविधान में प्रावधान',
+    'पर्यावरण से जुड़े मुख्य तथ्य',
+    'संसद की कार्यप्रणाली समझाएं',
   ],
   gu: [
     'ભારતીય બંધારણ વિશે સમજાવો',
     'સરકારી પરીક્ષા માટે મુખ્ય વિષયો',
     'MCQ practice ક્યાંથી શરૂ કરવી?',
+    'રાજ્યસભા અને લોકસભા વચ્ચે શો ફર્ક?',
+    'મૂળભૂત અધિકારો શું છે?',
+    'ભારતના રાષ્ટ્રપતિ કેવી રીતે ચૂંટાય છે?',
+    'ભારતની નદીઓ અને પર્વતો',
+    'GPSC પરીક્ષા માટે ટોચના 5 વિષયો',
+    'CAG ની ભૂમિકા સમજવો',
+    'ભારતના આઝાદી આંદોળની ઘટનાઓ',
+    'પંચવર્ષીય યોજનાઓ વિશે સમજાવો',
+    'પર્યાવરણ માટેના મુખ્ય તથ્યો',
   ],
 }
 
@@ -159,7 +186,13 @@ export default function Chat({ lang, onLangChange, langs, messages, setMessages,
     speechSynthesis.speak(u)
   }
 
-  const suggestions = SUGGESTIONS[lang] || SUGGESTIONS.en
+  // Pick 3 random suggestions from the pool each time messages are cleared (new chat)
+  const suggestions = useMemo(() => {
+    const pool = SUGGESTION_POOL[lang] || SUGGESTION_POOL.en
+    const shuffled = [...pool].sort(() => Math.random() - 0.5)
+    return shuffled.slice(0, 3)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang, messages.length === 0])
   const emptyPrompt = EMPTY_PROMPT[lang] || EMPTY_PROMPT.en
   const placeholder = PLACEHOLDER[lang] || PLACEHOLDER.en
 
