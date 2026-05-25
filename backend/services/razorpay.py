@@ -45,7 +45,7 @@ def verify_hmac(message: str, signature: str, secret: str) -> bool:
 def verify_checkout_signature(subscription_id: str, payment_id: str, signature: str) -> bool:
     if not RAZORPAY_KEY_SECRET:
         raise HTTPException(status_code=500, detail="Missing Razorpay key secret.")
-    return verify_hmac(f"{subscription_id}|{payment_id}", signature, RAZORPAY_KEY_SECRET)
+    return verify_hmac(f"{payment_id}|{subscription_id}", signature, RAZORPAY_KEY_SECRET)
 
 
 def verify_order_signature(order_id: str, payment_id: str, signature: str) -> bool:
@@ -102,9 +102,6 @@ async def create_customer(email: str, name: str, user_id: str) -> dict:
 
 async def create_subscription(user_id: str, email: str, name: str, customer_id: Optional[str] = None) -> dict:
     require_razorpay_config(require_plan=True)
-    if not customer_id:
-        customer = await create_customer(email, name, user_id)
-        customer_id = customer.get("id")
 
     subscription = await _razorpay_request(
         "POST",
@@ -114,11 +111,9 @@ async def create_subscription(user_id: str, email: str, name: str, customer_id: 
             "total_count": 120,
             "quantity": 1,
             "customer_notify": 0,
-            "customer_id": customer_id,
             "notes": {"user_id": user_id, "plan": "pro_monthly"},
         },
     )
-    subscription["customer_id"] = customer_id
     return subscription
 
 

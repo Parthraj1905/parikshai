@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Razorpay Test</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+    <button id="rzp-button1">Pay</button>
+    <script>
+        var options = {
+            "key": "rzp_test_StVol13uVU5Egd",
+            "subscription_id": "sub_StWJRnhQO30PkM",
+            "name": "ParikshAI Pro",
+            "description": "Pro monthly subscription",
+            "prefill": {
+                "email": "test@example.com"
+            },
+            "theme": {
+                "color": "#8ab4f8"
+            },
+            "handler": function (response){
+                console.log(response);
+            }
+        };
+        var rzp1 = new Razorpay(options);
+        document.getElementById('rzp-button1').onclick = function(e){
+            rzp1.open();
+            e.preventDefault();
+        }
+    </script>
+</body>
+</html>

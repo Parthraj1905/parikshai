@@ -12,13 +12,19 @@ const Row = ({ label, desc, right }) => (
   </div>
 )
 
-export default function Settings() {
+export default function Settings({ onRequestLogout }) {
   const { fontSize, increaseFontSize, decreaseFontSize } = useTheme()
   const toast = useToast()
 
   async function handleLogout() {
-    await supabase.auth.signOut()
-    toast.success('Signed out')
+    if (onRequestLogout) {
+      onRequestLogout()
+    } else {
+      if (window.confirm('Are you sure you want to sign out?')) {
+        await supabase.auth.signOut()
+        toast.success('Signed out')
+      }
+    }
   }
 
   return (
@@ -30,21 +36,6 @@ export default function Settings() {
           <p style={{ fontSize: '13px', color: '#9aa0a6', margin: 0 }}>Customize your experience</p>
         </div>
 
-        {/* Appearance */}
-        <div style={{ background: '#2a2b2d', borderRadius: '14px', padding: '20px', border: '1px solid #3c3c3e', marginBottom: '12px' }}>
-          <h3 style={{ fontSize: '11px', fontWeight: '600', color: '#9aa0a6', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px' }}>Appearance</h3>
-          <Row
-            label="Font Size"
-            desc={`Current size: ${fontSize}px`}
-            right={
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <button onClick={decreaseFontSize} disabled={fontSize <= 12} style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#3c3c3e', border: 'none', color: '#e3e3e3', fontSize: '13px', cursor: fontSize <= 12 ? 'not-allowed' : 'pointer', opacity: fontSize <= 12 ? 0.4 : 1, fontFamily: 'inherit' }}>A−</button>
-                <span style={{ fontSize: '14px', color: '#e3e3e3', width: '28px', textAlign: 'center' }}>{fontSize}</span>
-                <button onClick={increaseFontSize} disabled={fontSize >= 22} style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#3c3c3e', border: 'none', color: '#e3e3e3', fontSize: '13px', cursor: fontSize >= 22 ? 'not-allowed' : 'pointer', opacity: fontSize >= 22 ? 0.4 : 1, fontFamily: 'inherit' }}>A+</button>
-              </div>
-            }
-          />
-        </div>
 
         {/* About */}
         <div style={{ background: '#2a2b2d', borderRadius: '14px', padding: '20px', border: '1px solid #3c3c3e', marginBottom: '12px' }}>

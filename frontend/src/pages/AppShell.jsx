@@ -53,6 +53,7 @@ export default function AppShell({ session }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [sidebarVisible, setSidebarVisible] = useState(true)
   const [lang, setLang] = useState('gu')
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
 
   // messages lifted here so they survive route changes (billing, settings, etc.)
   const [messages, setMessages] = useState([])
@@ -66,9 +67,14 @@ export default function AppShell({ session }) {
   const location = useLocation()
   const toast = useToast()
 
-  async function logout() {
+  async function performLogout() {
     await supabase.auth.signOut()
     toast.success('Signed out')
+    setShowLogoutModal(false)
+  }
+
+  function requestLogout() {
+    setShowLogoutModal(true)
   }
 
   useEffect(() => {
@@ -381,9 +387,52 @@ export default function AppShell({ session }) {
           <Route path="/mcq" element={<MCQ lang={lang} />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/billing" element={<Billing session={session} />} />
-          <Route path="/settings" element={<Settings />} />
+          <Route path="/settings" element={<Settings onRequestLogout={requestLogout} />} />
         </Routes>
       </main>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px'
+        }}>
+          <div style={{
+            background: '#1e1f20', borderRadius: '16px', padding: '28px',
+            width: '100%', maxWidth: '360px', border: '1px solid #3c3c3e',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+            fontFamily: "'Google Sans', sans-serif"
+          }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#e3e3e3', margin: '0 0 12px' }}>Sign out</h3>
+            <p style={{ fontSize: '14px', color: '#9aa0a6', margin: '0 0 24px', lineHeight: '1.5' }}>
+              Are you sure you want to sign out of your account?
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                onClick={() => setShowLogoutModal(false)}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '100px', border: '1px solid #5f6368',
+                  background: 'transparent', color: '#e3e3e3', fontSize: '14px', fontWeight: '600',
+                  cursor: 'pointer', fontFamily: 'inherit'
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={performLogout}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '100px', border: 'none',
+                  background: '#f87171', color: '#131314', fontSize: '14px', fontWeight: '600',
+                  cursor: 'pointer', fontFamily: 'inherit'
+                }}
+              >
+                Sign out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

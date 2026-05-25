@@ -19,8 +19,10 @@ function SparkleIcon({ size = 48 }) {
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [isSignup, setIsSignup] = useState(false)
   const [error, setError] = useState('')
+  const [successMsg, setSuccessMsg] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -29,10 +31,23 @@ export default function Login() {
 
   async function handleSubmit() {
     setError('')
+    setSuccessMsg('')
+    
+    if (isSignup && password !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+
     setLoading(true)
     if (isSignup) {
-      const { error } = await supabase.auth.signUp({ email, password })
-      if (error) setError(error.message)
+      const { data, error } = await supabase.auth.signUp({ email, password })
+      if (error) {
+        setError(error.message)
+      } else {
+        if (!data.session) {
+          setSuccessMsg('Account created! Please check your email for a verification link.')
+        }
+      }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) setError(error.message)
@@ -105,6 +120,28 @@ export default function Login() {
                 onBlur={e => e.target.style.borderColor = '#3c3c3e'}
               />
             </div>
+            {isSignup && (
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#9aa0a6', marginBottom: '8px' }}>Confirm Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  style={{
+                    width: '100%', padding: '12px 14px', borderRadius: '10px',
+                    background: '#2a2b2d', border: '1px solid #3c3c3e',
+                    color: '#e3e3e3', fontSize: '14px', outline: 'none',
+                    fontFamily: 'inherit', boxSizing: 'border-box',
+                    transition: 'border-color 0.2s',
+                  }}
+                  onFocus={e => e.target.style.borderColor = '#8ab4f8'}
+                  onBlur={e => e.target.style.borderColor = '#3c3c3e'}
+                />
+              </div>
+            )}
           </div>
 
           {error && (
@@ -114,6 +151,16 @@ export default function Login() {
               color: '#f87171', fontSize: '13px',
             }}>
               {error}
+            </div>
+          )}
+
+          {successMsg && (
+            <div style={{
+              marginTop: '16px', padding: '10px 14px', borderRadius: '10px',
+              background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)',
+              color: '#4ade80', fontSize: '13px',
+            }}>
+              {successMsg}
             </div>
           )}
 
@@ -138,10 +185,14 @@ export default function Login() {
             ) : (isSignup ? 'Create account' : 'Sign in')}
           </button>
 
-          <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: '#9aa0a6', cursor: 'pointer' }}
-            onClick={() => { setIsSignup(!isSignup); setError('') }}>
+          <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: '#9aa0a6' }}>
             {isSignup ? 'Already have an account? ' : "Don't have an account? "}
-            <span style={{ color: '#8ab4f8', fontWeight: '500' }}>{isSignup ? 'Sign in' : 'Sign up'}</span>
+            <span 
+              style={{ color: '#8ab4f8', fontWeight: '500', cursor: 'pointer' }}
+              onClick={() => { setIsSignup(!isSignup); setError(''); setSuccessMsg(''); setConfirmPassword(''); }}
+            >
+              {isSignup ? 'Sign in' : 'Sign up'}
+            </span>
           </p>
         </div>
 

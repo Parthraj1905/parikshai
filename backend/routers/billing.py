@@ -52,15 +52,37 @@ async def billing_subscription(authorization: str = Header(...)):
     profile = get_profile(user.id)
     existing_subscription_id = profile.get("razorpay_subscription_id")
 
-    if existing_subscription_id and profile.get("plan_status") in {"created", "authenticated", "active"}:
-        subscription = {"id": existing_subscription_id}
-    else:
-        subscription = await create_subscription(
-            user.id,
-            user.email or "",
-            (user.email or "").split("@")[0],
-            profile.get("razorpay_customer_id"),
-        )
+    if existing_subscription_id:
+        if profile.get("plan_status") in {"authenticated", "active"}:
+            try:
+                # Verify the subscription exists in the current environment and is not cancelled
+                sub = await fetch_subscription(existing_subscription_id)
+                if sub.get("status") in {"authenticated", "active"}:
+                    subscription = {"id": existing_subscription_id}
+                else:
+                    existing_subscription_id = None
+            except Exception:
+                existing_subscription_id = None
+        else:
+            existing_subscription_id = None
+
+    if not existing_subscription_id:
+        try:
+            subscription = await create_subscription(
+                user.id,
+                user.email or "",
+                (user.email or "").split("@")[0],
+                profile.get("razorpay_customer_id"),
+            )
+        except Exception:
+            # If customer ID is from another environment, clear it and try again
+            subscription = await create_subscription(
+                user.id,
+                user.email or "",
+                (user.email or "").split("@")[0],
+                None,
+            )
+
         updates = {
             "plan": "pro",
             "plan_status": subscription.get("status") or "created",
@@ -74,7 +96,7 @@ async def billing_subscription(authorization: str = Header(...)):
         "subscription_id": subscription["id"],
         "name": "ParikshAI Pro",
         "description": "Pro monthly subscription",
-        "prefill": {"email": user.email},
+        "prefill": {"email": user.email, "contact": "9999999999"},
     }
 
 
