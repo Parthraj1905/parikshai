@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../lib/ToastContext'
-import { listChats } from '../lib/api'
+import { listChats, deleteChat } from '../lib/api'
 import Chat from './Chat'
 import MCQ from './MCQ'
 import Dashboard from './Dashboard'
@@ -24,6 +24,7 @@ const Icons = {
   settings: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>,
   logout: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>,
   plus: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>,
+  trash: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
 }
 
 function SparkleIcon({ size = 24 }) {
@@ -54,6 +55,7 @@ export default function AppShell({ session }) {
   const [sidebarVisible, setSidebarVisible] = useState(true)
   const [lang, setLang] = useState('gu')
   const [showLogoutModal, setShowLogoutModal] = useState(false)
+  const [chatToDelete, setChatToDelete] = useState(null)
 
   // messages lifted here so they survive route changes (billing, settings, etc.)
   const [messages, setMessages] = useState([])
@@ -75,6 +77,23 @@ export default function AppShell({ session }) {
 
   function requestLogout() {
     setShowLogoutModal(true)
+  }
+
+  async function confirmDelete() {
+    if (!chatToDelete) return
+    try {
+      await deleteChat(chatToDelete.id)
+      toast.success('Chat deleted forever')
+      if (activeChatId === chatToDelete.id) {
+        startNewChat()
+      } else {
+        refreshChats()
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to delete chat')
+    } finally {
+      setChatToDelete(null)
+    }
   }
 
   useEffect(() => {
@@ -139,14 +158,14 @@ export default function AppShell({ session }) {
   const isChatRoute = location.pathname === '/'
   const activeChatId = new URLSearchParams(location.search).get('chat') || null
 
-  function startNewChat() {
+  const startNewChat = useCallback(() => {
     setMessages([])         // intentional clear — user asked for a new chat
     lastLoadedChatId.current = null
     navigate('/')
     if (window.matchMedia('(max-width: 767px)').matches) setSidebarOpen(false)
-  }
+  }, [navigate])
 
-  function selectChat(chat) {
+  const selectChat = useCallback((chat) => {
     if (chat.language) setLang(chat.language)
     // Only clear messages if switching to a genuinely different saved chat
     if (chat.id !== lastLoadedChatId.current) {
@@ -155,25 +174,25 @@ export default function AppShell({ session }) {
     lastLoadedChatId.current = chat.id
     navigate(`/?chat=${chat.id}`)
     if (window.matchMedia('(max-width: 767px)').matches) setSidebarOpen(false)
-  }
+  }, [navigate])
 
-  function changeLang(nextLang) {
+  const changeLang = useCallback((nextLang) => {
     setLang(nextLang)
     navigate('/')
-  }
+  }, [navigate])
 
-  function handleChatSaved(sessionId) {
+  const handleChatSaved = useCallback((sessionId) => {
     if (sessionId && sessionId !== activeChatId) {
       navigate(`/?chat=${sessionId}`, { replace: true })
     }
     refreshChats()
-  }
+  }, [activeChatId, navigate, refreshChats])
 
-  function handleChatLoaded(chat) {
+  const handleChatLoaded = useCallback((chat) => {
     if (!chat) return
     if (chat.language) setLang(chat.language)
     lastLoadedChatId.current = chat.id || null
-  }
+  }, [])
 
   const userEmail = session?.user?.email || ''
   const userInitial = userEmail?.[0]?.toUpperCase() || 'U'
@@ -299,34 +318,61 @@ export default function AppShell({ session }) {
             <p style={{ color: '#5f6368', fontSize: '12px', padding: '6px', lineHeight: '1.4' }}>No saved chats yet</p>
           )}
           {!loadingChats && chatHistory.map(chat => (
-            <button
-              key={chat.id}
-              onClick={() => selectChat(chat)}
-              title={chat.title}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 10px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                background: activeChatId === chat.id ? '#2a2b2d' : 'transparent',
-                color: activeChatId === chat.id ? '#e3e3e3' : '#9aa0a6',
-                fontSize: '13px',
-                fontWeight: '400',
-                border: 'none',
-                transition: 'background 0.15s, color 0.15s',
-                width: '100%',
-                textAlign: 'left',
-                boxSizing: 'border-box',
-                justifyContent: sidebarOpen ? 'flex-start' : 'center',
-              }}
-              onMouseEnter={e => { if (activeChatId !== chat.id) { e.currentTarget.style.background = '#1e1f20'; e.currentTarget.style.color = '#e3e3e3' } }}
-              onMouseLeave={e => { if (activeChatId !== chat.id) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9aa0a6' } }}
-            >
-              <span style={{ flexShrink: 0, opacity: 0.6 }}>{Icons.chat}</span>
-              {sidebarOpen && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span>}
-            </button>
+            <div key={chat.id} style={{ display: 'flex', alignItems: 'center', width: '100%', position: 'relative' }} className="group">
+              <button
+                onClick={() => selectChat(chat)}
+                title={chat.title}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 10px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  background: activeChatId === chat.id ? '#2a2b2d' : 'transparent',
+                  color: activeChatId === chat.id ? '#e3e3e3' : '#9aa0a6',
+                  fontSize: '13px',
+                  fontWeight: '400',
+                  border: 'none',
+                  transition: 'background 0.15s, color 0.15s',
+                  width: '100%',
+                  textAlign: 'left',
+                  boxSizing: 'border-box',
+                  justifyContent: sidebarOpen ? 'flex-start' : 'center',
+                  paddingRight: sidebarOpen ? '36px' : '10px',
+                }}
+                onMouseEnter={e => { if (activeChatId !== chat.id) { e.currentTarget.style.background = '#1e1f20'; e.currentTarget.style.color = '#e3e3e3' } }}
+                onMouseLeave={e => { if (activeChatId !== chat.id) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9aa0a6' } }}
+              >
+                <span style={{ flexShrink: 0, opacity: 0.6 }}>{Icons.chat}</span>
+                {sidebarOpen && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span>}
+              </button>
+              {sidebarOpen && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setChatToDelete(chat) }}
+                  className="opacity-0 group-hover:opacity-100"
+                  style={{
+                    position: 'absolute',
+                    right: '6px',
+                    padding: '6px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#f87171',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'opacity 0.2s',
+                    borderRadius: '6px',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.1)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  title="Delete chat forever"
+                >
+                  {Icons.trash}
+                </button>
+              )}
+            </div>
           ))}
         </div>
 
@@ -390,6 +436,49 @@ export default function AppShell({ session }) {
           <Route path="/settings" element={<Settings onRequestLogout={requestLogout} />} />
         </Routes>
       </main>
+
+      {/* Delete Confirmation Modal */}
+      {chatToDelete && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px'
+        }}>
+          <div style={{
+            background: '#1e1f20', borderRadius: '16px', padding: '28px',
+            width: '100%', maxWidth: '360px', border: '1px solid #3c3c3e',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+            fontFamily: "'Google Sans', sans-serif"
+          }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#e3e3e3', margin: '0 0 12px' }}>Delete Chat</h3>
+            <p style={{ fontSize: '14px', color: '#9aa0a6', margin: '0 0 24px', lineHeight: '1.5' }}>
+              Are you sure you want to delete this chat? This will get deleted forever.
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                onClick={() => setChatToDelete(null)}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '100px', border: '1px solid #5f6368',
+                  background: 'transparent', color: '#e3e3e3', fontSize: '14px', fontWeight: '600',
+                  cursor: 'pointer', fontFamily: 'inherit'
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmDelete}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '100px', border: 'none',
+                  background: '#f87171', color: '#131314', fontSize: '14px', fontWeight: '600',
+                  cursor: 'pointer', fontFamily: 'inherit'
+                }}
+              >
+                Delete Forever
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Logout Confirmation Modal */}
       {showLogoutModal && (

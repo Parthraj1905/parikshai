@@ -176,7 +176,7 @@ def archive_session(user_id: str, session_id: str) -> None:
     try:
         (
             supabase.table("chat_sessions")
-            .update({"archived_at": datetime.now(timezone.utc).isoformat()})
+            .delete()
             .eq("id", session_id)
             .eq("user_id", user_id)
             .execute()

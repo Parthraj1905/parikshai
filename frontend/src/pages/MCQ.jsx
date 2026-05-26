@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { generateMCQ, submitMCQ } from '../lib/api'
 import PaywallModal from '../components/PaywallModal'
+import MCQSkeleton from '../components/MCQSkeleton'
 
 // Generic topics applicable to all Government exams
 const TOPICS = [
@@ -135,22 +136,21 @@ export default function MCQ({ lang }) {
           </div>
         )}
 
-        {/* Start button */}
-        {!question && (
-          <button onClick={loadBatch} disabled={loading} style={{
+        {/* Start button or Skeleton */}
+        {!question && !loading && (
+          <button onClick={loadBatch} style={{
             width: '100%', padding: '15px', borderRadius: '10px', border: 'none',
-            background: loading ? '#2a2b2d' : 'linear-gradient(135deg, #8ab4f8 0%, #c084fc 100%)',
-            color: loading ? '#9aa0a6' : '#131314', fontSize: '14px', fontWeight: '600',
-            cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+            background: 'linear-gradient(135deg, #8ab4f8 0%, #c084fc 100%)',
+            color: '#131314', fontSize: '14px', fontWeight: '600',
+            cursor: 'pointer', fontFamily: 'inherit',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
           }}>
-            {loading ? (
-              <>
-                <div style={{ width: '16px', height: '16px', border: '2px solid #5f6368', borderTopColor: '#9aa0a6', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                Generating {BATCH_SIZE} questions...
-              </>
-            ) : `Start ${BATCH_SIZE} Questions`}
+            Start {BATCH_SIZE} Questions
           </button>
+        )}
+
+        {!question && loading && (
+          <MCQSkeleton />
         )}
 
         {/* Question card */}
@@ -215,7 +215,6 @@ export default function MCQ({ lang }) {
         )}
       </div>
       <PaywallModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} />
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useToast } from '../lib/ToastContext'
 import { createProSubscription, getPlan, verifyProSubscription } from '../lib/api'
+import BillingSkeleton from '../components/BillingSkeleton'
 
 function loadRazorpayScript() {
   return new Promise((resolve, reject) => {
@@ -107,7 +108,11 @@ export default function Billing({ session }) {
           <p style={{ fontSize: '13px', color: '#9aa0a6', margin: 0 }}>Manage your subscription and usage</p>
         </div>
 
-        {/* Account card */}
+        {loading ? (
+          <BillingSkeleton />
+        ) : (
+          <>
+            {/* Account card */}
         <div style={{ background: '#2a2b2d', borderRadius: '14px', padding: '20px', border: '1px solid #3c3c3e', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{
             width: '44px', height: '44px', borderRadius: '50%', flexShrink: 0,
@@ -121,14 +126,14 @@ export default function Billing({ session }) {
             <p style={{ color: '#e3e3e3', fontSize: '14px', fontWeight: '600', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userName}</p>
             <p style={{ color: '#9aa0a6', fontSize: '12px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userEmail}</p>
           </div>
-          <span style={{
-            padding: '5px 12px', borderRadius: '8px', flexShrink: 0,
-            background: isPro ? 'rgba(74,222,128,0.12)' : 'rgba(138,180,248,0.12)',
-            color: isPro ? '#4ade80' : '#8ab4f8',
-            fontSize: '11px', fontWeight: '700', letterSpacing: '0.05em',
-          }}>
-            {loading ? '…' : isPro ? 'PRO' : 'FREE'}
-          </span>
+            <span style={{
+              padding: '5px 12px', borderRadius: '8px', flexShrink: 0,
+              background: isPro ? 'rgba(74,222,128,0.12)' : 'rgba(138,180,248,0.12)',
+              color: isPro ? '#4ade80' : '#8ab4f8',
+              fontSize: '11px', fontWeight: '700', letterSpacing: '0.05em',
+            }}>
+              {isPro ? 'PRO' : 'FREE'}
+            </span>
         </div>
 
         {/* Usage stats */}
@@ -241,6 +246,8 @@ export default function Billing({ session }) {
               </div>
             ))}
           </div>
+        )}
+          </>
         )}
       </div>
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>

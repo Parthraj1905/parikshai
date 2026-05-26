@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getProgress } from '../lib/api'
+import DashboardSkeleton from '../components/DashboardSkeleton'
 
 export default function Dashboard() {
   const [data, setData] = useState(null)
@@ -63,9 +64,7 @@ export default function Dashboard() {
         )}
 
         {!data && !error && !locked && (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
-            <div style={{ width: '32px', height: '32px', border: '2px solid #3c3c3e', borderTopColor: '#8ab4f8', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-          </div>
+          <DashboardSkeleton />
         )}
 
         {data && !locked && (
@@ -160,7 +159,6 @@ export default function Dashboard() {
           </>
         )}
       </div>
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }

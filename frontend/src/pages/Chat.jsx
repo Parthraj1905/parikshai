@@ -4,17 +4,56 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import PaywallModal from '../components/PaywallModal'
 
+const MARKDOWN_COMPONENTS = {
+  p: ({ children }) => <p style={{ margin: '0 0 8px', color: '#e3e3e3' }}>{children}</p>,
+  strong: ({ children }) => <strong style={{ color: '#fff', fontWeight: '600' }}>{children}</strong>,
+  code: ({ children, className }) => className
+    ? <pre style={{ background: '#2a2b2d', padding: '12px', borderRadius: '8px', overflowX: 'auto', margin: '8px 0', fontSize: '13px' }}><code style={{ color: '#8ab4f8' }}>{children}</code></pre>
+    : <code style={{ background: '#2a2b2d', padding: '2px 6px', borderRadius: '4px', color: '#8ab4f8', fontSize: '13px' }}>{children}</code>,
+  ul: ({ children }) => <ul style={{ paddingLeft: '20px', margin: '4px 0' }}>{children}</ul>,
+  ol: ({ children }) => <ol style={{ paddingLeft: '20px', margin: '4px 0' }}>{children}</ol>,
+  li: ({ children }) => <li style={{ color: '#e3e3e3', marginBottom: '4px' }}>{children}</li>,
+  h1: ({ children }) => <h1 style={{ color: '#fff', fontSize: '18px', fontWeight: '700', margin: '12px 0 6px' }}>{children}</h1>,
+  h2: ({ children }) => <h2 style={{ color: '#fff', fontSize: '16px', fontWeight: '600', margin: '10px 0 4px' }}>{children}</h2>,
+  h3: ({ children }) => <h3 style={{ color: '#e3e3e3', fontSize: '14px', fontWeight: '600', margin: '8px 0 4px' }}>{children}</h3>,
+};
+
+function TypewriterMarkdown({ content, bottomRef }) {
+  const [displayedText, setDisplayedText] = useState('');
+
+  useEffect(() => {
+    let index = 0;
+    setDisplayedText('');
+    const interval = setInterval(() => {
+      index += 3;
+      if (index > content.length) index = content.length;
+      setDisplayedText(content.substring(0, index));
+      bottomRef?.current?.scrollIntoView({ behavior: 'auto' });
+      if (index >= content.length) {
+        clearInterval(interval);
+      }
+    }, 15);
+    return () => clearInterval(interval);
+  }, [content, bottomRef]);
+
+  return (
+    <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>
+      {displayedText}
+    </ReactMarkdown>
+  );
+}
+
 function SparkleIcon({ size = 28 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <defs>
         <linearGradient id="sg" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8ab4f8"/>
-          <stop offset="50%" stopColor="#c084fc"/>
-          <stop offset="100%" stopColor="#f472b6"/>
+          <stop offset="0%" stopColor="#8ab4f8" />
+          <stop offset="50%" stopColor="#c084fc" />
+          <stop offset="100%" stopColor="#f472b6" />
         </linearGradient>
       </defs>
-      <path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z" fill="url(#sg)"/>
+      <path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z" fill="url(#sg)" />
     </svg>
   )
 }
@@ -34,10 +73,10 @@ function ThinkingDots() {
   )
 }
 
-const IconCopy = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-const IconMic = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-const IconSend = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
-const IconVol = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+const IconCopy = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+const IconMic = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
+const IconSend = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" /></svg>
+const IconVol = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
 
 // Large pool — 3 random ones are picked on each new chat render
 const SUGGESTION_POOL = {
@@ -110,6 +149,7 @@ export default function Chat({ lang, onLangChange, langs, messages, setMessages,
   const [showPaywall, setShowPaywall] = useState(false)
   const bottomRef = useRef()
   const textareaRef = useRef()
+  const loadedChatIdRef = useRef(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -119,7 +159,14 @@ export default function Chat({ lang, onLangChange, langs, messages, setMessages,
   // Does NOT clear messages when lang changes — that caused the data loss bug.
 
   useEffect(() => {
-    if (!activeChatId) return
+    if (!activeChatId) {
+      if (messages.length === 0) {
+        loadedChatIdRef.current = null
+      }
+      return
+    }
+    if (loadedChatIdRef.current === activeChatId) return
+
     let alive = true
     async function loadSavedChat() {
       setLoadingChat(true)
@@ -128,6 +175,7 @@ export default function Chat({ lang, onLangChange, langs, messages, setMessages,
         if (!alive) return
         onChatLoaded?.(data.chat)
         setMessages((data.messages || []).map(m => ({ role: m.role, content: m.content })))
+        loadedChatIdRef.current = activeChatId
       } catch (e) {
         if (!alive) return
         setMessages([{ role: 'model', content: e.response?.data?.detail || 'Could not load this chat.', error: true }])
@@ -137,7 +185,7 @@ export default function Chat({ lang, onLangChange, langs, messages, setMessages,
     }
     loadSavedChat()
     return () => { alive = false }
-  }, [activeChatId, onChatLoaded])
+  }, [activeChatId, onChatLoaded, messages.length])
 
   async function send() {
     if (!input.trim() || loading) return
@@ -149,7 +197,10 @@ export default function Chat({ lang, onLangChange, langs, messages, setMessages,
     setLoading(true)
     try {
       const data = await sendMessage(EXAM, lang, newMessages, activeChatId)
-      setMessages(prev => [...prev, { role: 'model', content: data.reply }])
+      setMessages(prev => [...prev, { role: 'model', content: data.reply, isTyping: true }])
+      if (data.session_id) {
+        loadedChatIdRef.current = data.session_id
+      }
       onChatSaved?.(data.session_id)
     } catch (e) {
       if (e.response?.status === 429) {
@@ -175,7 +226,7 @@ export default function Chat({ lang, onLangChange, langs, messages, setMessages,
   }
 
   async function copyMsg(content, idx) {
-    await navigator.clipboard.writeText(content).catch(() => {})
+    await navigator.clipboard.writeText(content).catch(() => { })
     setCopiedIdx(idx)
     setTimeout(() => setCopiedIdx(null), 1500)
   }
@@ -191,7 +242,7 @@ export default function Chat({ lang, onLangChange, langs, messages, setMessages,
     const pool = SUGGESTION_POOL[lang] || SUGGESTION_POOL.en
     const shuffled = [...pool].sort(() => Math.random() - 0.5)
     return shuffled.slice(0, 3)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lang, messages.length === 0])
   const emptyPrompt = EMPTY_PROMPT[lang] || EMPTY_PROMPT.en
   const placeholder = PLACEHOLDER[lang] || PLACEHOLDER.en
@@ -252,8 +303,9 @@ export default function Chat({ lang, onLangChange, langs, messages, setMessages,
         <div style={{ maxWidth: '740px', margin: '0 auto', padding: '0 20px' }}>
 
           {loadingChat && (
-            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '20vh' }}>
-              <ThinkingDots />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', animation: 'fadeIn 0.5s ease' }}>
+              <SparkleIcon size={32} />
+              <div style={{ marginTop: '16px' }}><ThinkingDots /></div>
             </div>
           )}
 
@@ -311,24 +363,19 @@ export default function Chat({ lang, onLangChange, langs, messages, setMessages,
                   fontSize: '14px', lineHeight: '1.65',
                 }}>
                   {m.role === 'model' ? (
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        p: ({children}) => <p style={{ margin: '0 0 8px', color: '#e3e3e3' }}>{children}</p>,
-                        strong: ({children}) => <strong style={{ color: '#fff', fontWeight: '600' }}>{children}</strong>,
-                        code: ({children, className}) => className
-                          ? <pre style={{ background: '#2a2b2d', padding: '12px', borderRadius: '8px', overflowX: 'auto', margin: '8px 0', fontSize: '13px' }}><code style={{ color: '#8ab4f8' }}>{children}</code></pre>
-                          : <code style={{ background: '#2a2b2d', padding: '2px 6px', borderRadius: '4px', color: '#8ab4f8', fontSize: '13px' }}>{children}</code>,
-                        ul: ({children}) => <ul style={{ paddingLeft: '20px', margin: '4px 0' }}>{children}</ul>,
-                        ol: ({children}) => <ol style={{ paddingLeft: '20px', margin: '4px 0' }}>{children}</ol>,
-                        li: ({children}) => <li style={{ color: '#e3e3e3', marginBottom: '4px' }}>{children}</li>,
-                        h1: ({children}) => <h1 style={{ color: '#fff', fontSize: '18px', fontWeight: '700', margin: '12px 0 6px' }}>{children}</h1>,
-                        h2: ({children}) => <h2 style={{ color: '#fff', fontSize: '16px', fontWeight: '600', margin: '10px 0 4px' }}>{children}</h2>,
-                        h3: ({children}) => <h3 style={{ color: '#e3e3e3', fontSize: '14px', fontWeight: '600', margin: '8px 0 4px' }}>{children}</h3>,
-                      }}
-                    >
-                      {m.content}
-                    </ReactMarkdown>
+                    m.isTyping ? (
+                      <TypewriterMarkdown
+                        content={m.content}
+                        bottomRef={bottomRef}
+                      />
+                    ) : (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={MARKDOWN_COMPONENTS}
+                      >
+                        {m.content}
+                      </ReactMarkdown>
+                    )
                   ) : m.content}
                 </div>
 
