@@ -34,10 +34,14 @@ class VerifySubscriptionRequest(BaseModel):
 
 def _get_user(authorization: str):
     token = authorization.replace("Bearer ", "")
-    user = supabase.auth.get_user(token)
-    if not user:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    return user.user
+    try:
+        user = supabase.auth.get_user(token)
+        if not user or not user.user:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        return user.user
+    except Exception as exc:
+        raise HTTPException(status_code=401, detail="Unauthorized") from exc
+
 
 
 @router.get("/me/plan")

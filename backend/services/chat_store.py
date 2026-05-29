@@ -12,10 +12,14 @@ MAX_MESSAGE_CHARS = 12000
 
 def get_user_id_from_auth(authorization: str) -> str:
     token = authorization.replace("Bearer ", "")
-    user = supabase.auth.get_user(token)
-    if not user:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    return user.user.id
+    try:
+        user = supabase.auth.get_user(token)
+        if not user or not user.user:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        return user.user.id
+    except Exception as exc:
+        raise HTTPException(status_code=401, detail="Unauthorized") from exc
+
 
 
 def validate_message_content(content: str) -> str:

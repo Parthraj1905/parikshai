@@ -12,9 +12,13 @@ def _topic_label(topic):
 @router.get("/progress")
 async def get_progress(authorization: str = Header(...)):
     token = authorization.replace("Bearer ", "")
-    user = supabase.auth.get_user(token)
-    if not user:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    try:
+        user = supabase.auth.get_user(token)
+        if not user or not user.user:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+    except Exception as exc:
+        raise HTTPException(status_code=401, detail="Unauthorized") from exc
+
     
     user_id = user.user.id
     require_pro(user_id, "Progress dashboard")

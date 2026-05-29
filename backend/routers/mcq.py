@@ -29,10 +29,14 @@ class SubmitMCQRequest(BaseModel):
 
 def _get_user_id(authorization: str) -> str:
     token = authorization.replace("Bearer ", "")
-    user = supabase.auth.get_user(token)
-    if not user:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    return user.user.id
+    try:
+        user = supabase.auth.get_user(token)
+        if not user or not user.user:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        return user.user.id
+    except Exception as exc:
+        raise HTTPException(status_code=401, detail="Unauthorized") from exc
+
 
 
 def _raise_ai_http_error(exc: GeminiServiceError) -> None:
