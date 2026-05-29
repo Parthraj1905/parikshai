@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { generateMCQ, submitMCQ } from '../lib/api'
 import PaywallModal from '../components/PaywallModal'
 import MCQSkeleton from '../components/MCQSkeleton'
@@ -28,6 +29,7 @@ function createQuestionId() {
 }
 
 export default function MCQ({ lang }) {
+  const location = useLocation()
   const [topic, setTopic] = useState('Random')
   const [questions, setQuestions] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -41,11 +43,12 @@ export default function MCQ({ lang }) {
   const isLast = question && currentIndex + 1 >= questions.length
   const progress = questions.length ? ((currentIndex + (selectedAnswer ? 1 : 0)) / questions.length) * 100 : 0
 
-  async function loadBatch() {
+  async function loadBatch(customTopic) {
+    const activeTopic = (typeof customTopic === 'string') ? customTopic : topic
     setLoading(true); setError(''); setQuestions([]); setCurrentIndex(0); setSelectedAnswer('')
     try {
-      const data = await generateMCQ(EXAM, lang, topic === 'Random' ? null : topic, BATCH_SIZE)
-      const loaded = (data.questions || [data]).map(item => ({ ...item, id: createQuestionId(), topic }))
+      const data = await generateMCQ(EXAM, lang, activeTopic === 'Random' ? null : activeTopic, BATCH_SIZE)
+      const loaded = (data.questions || [data]).map(item => ({ ...item, id: createQuestionId(), topic: activeTopic }))
       setQuestions(loaded)
     } catch (e) {
       if (e.response?.status === 429) {
@@ -56,6 +59,18 @@ export default function MCQ({ lang }) {
     }
     setLoading(false)
   }
+
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search)
+    const urlTopic = queryParams.get('topic')
+    if (urlTopic) {
+      const matchedTopic = TOPICS.find(t => t.toLowerCase() === urlTopic.toLowerCase())
+      if (matchedTopic) {
+        setTopic(matchedTopic)
+        loadBatch(matchedTopic)
+      }
+    }
+  }, [location.search])
 
   async function chooseAnswer(option) {
     if (!question || selectedAnswer) return
