@@ -74,9 +74,7 @@ function ThinkingDots() {
 }
 
 const IconCopy = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-const IconMic = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
 const IconSend = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" /></svg>
-const IconVol = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
 
 // Large pool — 3 random ones are picked on each new chat render
 const SUGGESTION_POOL = {
@@ -144,9 +142,9 @@ export default function Chat({ lang, onLangChange, langs, messages, setMessages,
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [loadingChat, setLoadingChat] = useState(false)
-  const [listening, setListening] = useState(false)
   const [copiedIdx, setCopiedIdx] = useState(null)
   const [showPaywall, setShowPaywall] = useState(false)
+  
   const bottomRef = useRef()
   const textareaRef = useRef()
   const loadedChatIdRef = useRef(null)
@@ -214,27 +212,10 @@ export default function Chat({ lang, onLangChange, langs, messages, setMessages,
     setLoading(false)
   }
 
-  function voiceInput() {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SR) return
-    const r = new SR()
-    r.lang = lang === 'gu' ? 'gu-IN' : lang === 'hi' ? 'hi-IN' : 'en-US'
-    r.onstart = () => setListening(true)
-    r.onend = () => setListening(false)
-    r.onresult = e => { setInput(e.results[0][0].transcript); textareaRef.current?.focus() }
-    r.start()
-  }
-
   async function copyMsg(content, idx) {
     await navigator.clipboard.writeText(content).catch(() => { })
     setCopiedIdx(idx)
     setTimeout(() => setCopiedIdx(null), 1500)
-  }
-
-  function speak(content) {
-    const u = new SpeechSynthesisUtterance(content)
-    u.lang = lang === 'gu' ? 'gu-IN' : lang === 'hi' ? 'hi-IN' : 'en-US'
-    speechSynthesis.speak(u)
   }
 
   // Pick 3 random suggestions from the pool each time messages are cleared (new chat)
@@ -288,7 +269,7 @@ export default function Chat({ lang, onLangChange, langs, messages, setMessages,
           </div>
 
           <button
-            onClick={() => { speechSynthesis.cancel(); onStartNewChat?.() }}
+            onClick={onStartNewChat}
             style={{ fontSize: '12px', color: '#9aa0a6', background: 'transparent', border: 'none', cursor: 'pointer', padding: '5px 10px', borderRadius: '8px', fontFamily: 'inherit' }}
             onMouseEnter={e => { e.currentTarget.style.background = '#2a2b2d'; e.currentTarget.style.color = '#e3e3e3' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9aa0a6' }}
@@ -381,24 +362,19 @@ export default function Chat({ lang, onLangChange, langs, messages, setMessages,
 
                 {m.role === 'model' && !m.error && (
                   <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
-                    {[
-                      { icon: <IconCopy />, label: copiedIdx === i ? 'Copied!' : 'Copy', action: () => copyMsg(m.content, i) },
-                      { icon: <IconVol />, label: 'Read aloud', action: () => speak(m.content) },
-                    ].map((btn, bi) => (
-                      <button key={bi} onClick={btn.action} title={btn.label}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '4px',
-                          padding: '4px 8px', borderRadius: '6px',
-                          background: 'transparent', border: 'none',
-                          color: '#5f6368', fontSize: '11px', cursor: 'pointer',
-                          transition: 'background 0.15s, color 0.15s',
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.background = '#2a2b2d'; e.currentTarget.style.color = '#e3e3e3' }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#5f6368' }}
-                      >
-                        {btn.icon}
-                      </button>
-                    ))}
+                    <button onClick={() => copyMsg(m.content, i)} title={copiedIdx === i ? 'Copied!' : 'Copy'}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '4px',
+                        padding: '4px 8px', borderRadius: '6px',
+                        background: 'transparent', border: 'none',
+                        color: '#5f6368', fontSize: '11px', cursor: 'pointer',
+                        transition: 'background 0.15s, color 0.15s',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#2a2b2d'; e.currentTarget.style.color = '#e3e3e3' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#5f6368' }}
+                    >
+                      <IconCopy />
+                    </button>
                   </div>
                 )}
               </div>
@@ -449,20 +425,7 @@ export default function Chat({ lang, onLangChange, langs, messages, setMessages,
                 boxSizing: 'border-box',
               }}
             />
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 10px 8px' }}>
-              <button
-                onClick={voiceInput}
-                style={{
-                  width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: listening ? 'rgba(239,68,68,0.15)' : 'transparent', border: 'none',
-                  color: listening ? '#f87171' : '#9aa0a6', cursor: 'pointer', transition: 'all 0.15s',
-                }}
-                title="Voice input"
-                onMouseEnter={e => { if (!listening) { e.currentTarget.style.background = '#35363a'; e.currentTarget.style.color = '#e3e3e3' } }}
-                onMouseLeave={e => { if (!listening) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9aa0a6' } }}
-              >
-                <IconMic />
-              </button>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '2px 10px 8px' }}>
               <button
                 onClick={send}
                 disabled={!input.trim() || loading}
