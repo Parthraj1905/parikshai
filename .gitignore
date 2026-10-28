@@ -1,55 +1,58 @@
 # Dependencies
 node_modules/
+frontend/node_modules/
+.venv/
+venv/
+backend/.venv/
+backend/venv/
+
+# Python
 __pycache__/
 *.pyc
 *.pyo
-.venv/
-venv/
-env/
-backend/venv/
+*.pyd
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# Environment files
+# Environment / secrets
 .env
-.env.local
-.env.production
+.env.*
+*.env
+!.env.example
 
 # Build outputs
 dist/
 build/
 .next/
-
-# Python
-*.egg-info/
-.pytest_cache/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# IDE
-.vscode/
-.idea/
+out/
+coverage/
 
 # Logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 logs/
-
-# Secrets
-.env
-.env.*
-*.env
-
-# Python
-backend/.venv/
-__pycache__/
-*.pyc
-*.pyo
-
-# Node
-node_modules/
-frontend/node_modules/
 
 # OS
 .DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# IDE / editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Vercel
 .vercel
-.env*.local
+
+# Misc
+.claude/
+.serena/

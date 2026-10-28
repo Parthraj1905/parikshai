@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { getChat, sendMessage } from '../lib/api'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -18,23 +18,30 @@ const MARKDOWN_COMPONENTS = {
   h3: ({ children }) => <h3 style={{ color: '#e3e3e3', fontSize: '14px', fontWeight: '600', margin: '8px 0 4px' }}>{children}</h3>,
 };
 
-function TypewriterMarkdown({ content, bottomRef }) {
+function TypewriterMarkdown({ content, bottomRef, nearBottomRef, onDone }) {
   const [displayedText, setDisplayedText] = useState('');
+  const onDoneRef = useRef(onDone);
+  useEffect(() => { onDoneRef.current = onDone; });
 
   useEffect(() => {
     let index = 0;
-    setDisplayedText('');
     const interval = setInterval(() => {
       index += 3;
-      if (index > content.length) index = content.length;
-      setDisplayedText(content.substring(0, index));
-      bottomRef?.current?.scrollIntoView({ behavior: 'auto' });
       if (index >= content.length) {
+        setDisplayedText(content);
         clearInterval(interval);
+        onDoneRef.current?.();
+      } else {
+        setDisplayedText(content.substring(0, index));
+      }
+      // Only auto-scroll while the user is still at the bottom —
+      // never hijack the scroll position if they scrolled up to read.
+      if (nearBottomRef?.current) {
+        bottomRef?.current?.scrollIntoView({ behavior: 'auto' });
       }
     }, 15);
     return () => clearInterval(interval);
-  }, [content, bottomRef]);
+  }, [content, bottomRef, nearBottomRef]);
 
   return (
     <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>
@@ -74,6 +81,7 @@ function ThinkingDots() {
 }
 
 const IconCopy = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+const IconCheck = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
 const IconSend = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" /></svg>
 
 // Large pool — 3 random ones are picked on each new chat render
@@ -148,6 +156,33 @@ export default function Chat({ lang, onLangChange, langs, messages, setMessages,
   const bottomRef = useRef()
   const textareaRef = useRef()
   const loadedChatIdRef = useRef(null)
+  const messagesAreaRef = useRef()
+  const nearBottomRef = useRef(true)
+
+  function handleMessageScroll() {
+    const el = messagesAreaRef.current
+    if (el) nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+  }
+
+  // Mark all in-flight messages as fully displayed when Chat unmounts
+  // (navigating to Progress/Settings/etc). Without this, the typewriter
+  // would re-animate the whole message when the user came back.
+  useEffect(() => {
+    return () => {
+      setMessages(prev =>
+        prev.some(m => m.isTyping)
+          ? prev.map(m => (m.isTyping ? { ...m, isTyping: false } : m))
+          : prev
+      )
+    }
+  }, [setMessages])
+
+  // Typewriter finished for the message at `idx` — persist its final state
+  const handleTypingDone = useCallback((idx) => {
+    setMessages(prev =>
+      prev.map((m, j) => (j === idx && m.isTyping ? { ...m, isTyping: false } : m))
+    )
+  }, [setMessages])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -280,7 +315,7 @@ export default function Chat({ lang, onLangChange, langs, messages, setMessages,
       </div>
 
       {/* Messages area */}
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '24px 0', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
+      <div ref={messagesAreaRef} onScroll={handleMessageScroll} style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '24px 0', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
         <div style={{ maxWidth: '740px', margin: '0 auto', padding: '0 20px' }}>
 
           {loadingChat && (
@@ -348,6 +383,8 @@ export default function Chat({ lang, onLangChange, langs, messages, setMessages,
                       <TypewriterMarkdown
                         content={m.content}
                         bottomRef={bottomRef}
+                        nearBottomRef={nearBottomRef}
+                        onDone={handleTypingDone ? () => handleTypingDone(i) : undefined}
                       />
                     ) : (
                       <ReactMarkdown
@@ -362,18 +399,21 @@ export default function Chat({ lang, onLangChange, langs, messages, setMessages,
 
                 {m.role === 'model' && !m.error && (
                   <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
-                    <button onClick={() => copyMsg(m.content, i)} title={copiedIdx === i ? 'Copied!' : 'Copy'}
+                    <button
+                      onClick={() => copyMsg(m.content, i)}
+                      title={copiedIdx === i ? 'Copied!' : 'Copy'}
+                      aria-label={copiedIdx === i ? 'Copied' : 'Copy message'}
                       style={{
                         display: 'flex', alignItems: 'center', gap: '4px',
                         padding: '4px 8px', borderRadius: '6px',
                         background: 'transparent', border: 'none',
-                        color: '#5f6368', fontSize: '11px', cursor: 'pointer',
+                        color: copiedIdx === i ? '#81c995' : '#5f6368', fontSize: '11px', cursor: 'pointer',
                         transition: 'background 0.15s, color 0.15s',
                       }}
                       onMouseEnter={e => { e.currentTarget.style.background = '#2a2b2d'; e.currentTarget.style.color = '#e3e3e3' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#5f6368' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = copiedIdx === i ? '#81c995' : '#5f6368' }}
                     >
-                      <IconCopy />
+                      {copiedIdx === i ? <IconCheck /> : <IconCopy />}
                     </button>
                   </div>
                 )}
@@ -384,7 +424,12 @@ export default function Chat({ lang, onLangChange, langs, messages, setMessages,
           {loading && (
             <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', animation: 'fadeIn 0.2s ease' }}>
               <SparkleIcon size={24} />
-              <div style={{ paddingTop: '4px' }}><ThinkingDots /></div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingTop: '2px' }}>
+                <ThinkingDots />
+                <span style={{ fontSize: '12px', color: '#9aa0a6', fontStyle: 'italic' }}>
+                  {lang === 'hi' ? 'सोच रहा है…' : lang === 'gu' ? 'વિચારી રહ્યો છે…' : 'Thinking…'}
+                </span>
+              </div>
             </div>
           )}
 

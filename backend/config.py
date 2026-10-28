@@ -5,22 +5,20 @@ load_dotenv(override=True)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
 RAZORPAY_WEBHOOK_SECRET = os.getenv("RAZORPAY_WEBHOOK_SECRET")
 RAZORPAY_PRO_MONTHLY_PLAN_ID = os.getenv("RAZORPAY_PRO_MONTHLY_PLAN_ID")
 
-DEFAULT_GEMINI_MODELS = (
-    "gemini-2.5-flash-lite",
-    "gemini-2.5-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-2.0-flash",
+DEFAULT_GROQ_MODELS = (
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
+    "qwen/qwen3.8-27b",
 )
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODELS[0])
 
 
-def _parse_gemini_models(value):
+def _parse_groq_models(value):
     models = []
     for model in value.split(","):
         model = model.strip()
@@ -29,6 +27,6 @@ def _parse_gemini_models(value):
     return tuple(models)
 
 
-GEMINI_MODELS = _parse_gemini_models(
-    os.getenv("GEMINI_MODELS", ",".join((GEMINI_MODEL, *DEFAULT_GEMINI_MODELS)))
+GROQ_MODELS = _parse_groq_models(
+    os.getenv("GROQ_MODELS", ",".join(DEFAULT_GROQ_MODELS))
 )

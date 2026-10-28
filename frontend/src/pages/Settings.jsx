@@ -43,7 +43,7 @@ export default function Settings({ onRequestLogout }) {
           {[
             ['Version', '1.0.0'],
             ['Platform', 'Web (PWA)'],
-            ['AI Engine', 'Google Gemini'],
+            ['AI Engine', 'Groq'],
           ].map(([k, v]) => (
             <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #3c3c3e' }}>
               <span style={{ color: '#9aa0a6', fontSize: '14px' }}>{k}</span>

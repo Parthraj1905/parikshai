@@ -2,7 +2,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
-from services.gemini import GeminiServiceError, get_ai_response
+from services.groq import GroqServiceError, get_ai_response
 from services.chat_store import (
     append_message,
     create_session,
@@ -49,7 +49,7 @@ async def chat(req: ChatRequest, authorization: str = Header(...)):
 
     try:
         ai_reply = await get_ai_response(req.exam, req.language, req.messages)
-    except GeminiServiceError as exc:
+    except GroqServiceError as exc:
         headers = {}
         if exc.retry_after:
             headers["Retry-After"] = str(exc.retry_after)

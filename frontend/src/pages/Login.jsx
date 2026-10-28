@@ -67,7 +67,7 @@ export default function Login() {
             <SparkleIcon size={56} />
           </div>
           <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#e3e3e3', margin: '0 0 8px', letterSpacing: '-0.5px' }}>ParikshAI</h1>
-          <p style={{ color: '#9aa0a6', fontSize: '14px', margin: 0 }}>Powered by Gemini · Govt Exam Tutor</p>
+          <p style={{ color: '#9aa0a6', fontSize: '14px', margin: 0 }}>Powered by Groq · Govt Exam Tutor</p>
         </div>
 
         {/* Card */}
@@ -197,7 +197,7 @@ export default function Login() {
         </div>
 
         <p style={{ textAlign: 'center', marginTop: '24px', fontSize: '12px', color: '#5f6368' }}>
-          Powered by Google Gemini AI
+          Powered by Groq AI
         </p>
 
         <style>{`

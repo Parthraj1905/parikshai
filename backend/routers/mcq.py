@@ -4,7 +4,7 @@ import re
 from fastapi import APIRouter, Header, HTTPException
 from postgrest.exceptions import APIError
 from pydantic import BaseModel
-from services.gemini import GeminiServiceError, generate_mcq, generate_mcqs
+from services.groq import GroqServiceError, generate_mcq, generate_mcqs
 from services.plans import consume_quota
 from services.supabase_client import supabase
 
@@ -39,7 +39,7 @@ def _get_user_id(authorization: str) -> str:
 
 
 
-def _raise_ai_http_error(exc: GeminiServiceError) -> None:
+def _raise_ai_http_error(exc: GroqServiceError) -> None:
     headers = {}
     if exc.retry_after:
         headers["Retry-After"] = str(exc.retry_after)
@@ -111,7 +111,7 @@ async def generate(req: GenerateMCQRequest, authorization: str = Header(...)):
         if req.count > 1:
             return {"questions": await generate_mcqs(req.exam, req.language, req.topic, req.count)}
         return await generate_mcq(req.exam, req.language, req.topic)
-    except GeminiServiceError as exc:
+    except GroqServiceError as exc:
         _raise_ai_http_error(exc)
 
 
